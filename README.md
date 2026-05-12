@@ -1,0 +1,2 @@
+# uang
+Tentang Uang
