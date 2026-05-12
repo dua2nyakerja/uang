@@ -276,7 +276,7 @@ textarea.form-input{resize:vertical;min-height:80px}
   </div>
   <div class="auth-card">
     <div class="auth-logo">Fin<span>.</span>Kel 🏡</div>
-    <div class="auth-subtitle">Manajemen keuangan keluarga dengan mudah</div>
+    <div class="auth-subtitle">Manajemen keuangan keluarga Bareza</div>
     <div class="form-group">
       <label class="form-label">Username</label>
       <input type="text" class="form-input" id="loginUser" placeholder="Masukkan username" autocomplete="username">
@@ -287,7 +287,7 @@ textarea.form-input{resize:vertical;min-height:80px}
     </div>
     <div class="auth-error" id="authError">Username atau password salah.</div>
     <div style="margin-top:20px"><button class="btn btn-primary" onclick="doLogin()">Masuk →</button></div>
-    <div style="margin-top:14px;text-align:center;font-size:12px;color:var(--text-3)">Default: <strong>admin</strong> / <strong>finkel2024</strong></div>
+    <div style="margin-top:14px;text-align:center;font-size:12px;color:var(--text-3)">Default: <strong>yeyek</strong> / <strong>apasi</strong></div>
   </div>
 </div>
 
@@ -319,7 +319,7 @@ textarea.form-input{resize:vertical;min-height:80px}
     <div class="sidebar-footer">
       <div class="user-chip">
         <div class="user-avatar" id="userAvatar">A</div>
-        <div class="user-name" id="userName">Admin</div>
+        <div class="user-name" id="userName">Bareza</div>
         <button class="logout-btn" onclick="doLogout()" title="Keluar">⏏</button>
       </div>
     </div>
@@ -731,10 +731,10 @@ textarea.form-input{resize:vertical;min-height:80px}
 // ==================== DATA LAYER ====================
 const KEYS = { auth:'fk_auth', data:'fk_data', settings:'fk_settings' };
 
-const DEF_AUTH = { username:'admin', password:'finkel2024' };
+const DEF_AUTH = { username:'barezafamily', password:'AdrianBareza22' };
 const DEF_DATA = { income:[], expenses:[], savings:[], debts:[], salaries:{ suami:{amount:0,day:1}, istri:{amount:0,day:1} } };
 const DEF_SETTINGS = {
-  namaSuami:'Suami', namaIstri:'Istri', namaAnak:'Si Kecil',
+  namaSuami:'Mirza', namaIstri:'Rona', namaAnak:'Adrian',
   email1:'mirzabareza@gmail.com', email2:'ronasari20@gmail.com',
   ejsService:'', ejsTemplate:'', ejsKey:'', reportHistory:[]
 };
