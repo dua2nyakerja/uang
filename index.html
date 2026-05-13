@@ -565,7 +565,10 @@ export default {
             <div class="sgt">Aktifkan Sync Firebase → FinKel</div>
             <div class="sgd">Masukkan URL Firebase agar FinKel bisa ambil data dari bot secara otomatis.</div>
             <div class="fg" style="margin-top:10px"><label class="fl">URL Firebase Database</label><input type="text" class="fi" id="fbU" placeholder="https://finkel-bareza-xxxxx.firebaseio.com"></div>
-            <button class="btn bacc bsm" onclick="saveFB()">💾 Simpan &amp; Test</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:2px">
+              <button class="btn bacc bsm" onclick="saveFB()">💾 Simpan &amp; Test</button>
+              <button class="btn bghost bsm" onclick="syncFirebase()">🔄 Sync Manual</button>
+            </div>
             <div id="fbSt" style="font-size:12.5px;margin-top:8px;color:var(--t3)"></div>
           </div>
 
@@ -637,6 +640,7 @@ function showApp(){
   document.getElementById('app').classList.add('on');
   loadCfg();
   renderDash();
+  syncFirebase();
 }
 
 // ── AUTH ──
@@ -976,6 +980,43 @@ function saveFB(){
   const c=getC();c.firebaseUrl=url;setC(c);
   document.getElementById('fbSt').textContent='⏳ Mencoba koneksi...';
   fetch(url+'/ping.json').then(r=>{document.getElementById('fbSt').textContent=r.ok?'✅ Berhasil!':'⚠️ Gagal — cek URL';}).catch(()=>{document.getElementById('fbSt').textContent='⚠️ Tidak bisa terhubung.';});
+}
+
+async function syncFirebase(){
+  const c=getC();
+  if(!c.firebaseUrl)return;
+  try{
+    // Sync expenses
+    const eRes=await fetch(c.firebaseUrl+'/expenses.json');
+    const eData=await eRes.json();
+    if(eData&&typeof eData==='object'){
+      const d=getD();
+      const ex=new Set(d.expenses.map(e=>String(e.id)));
+      Object.values(eData).forEach(item=>{
+        if(item&&!ex.has(String(item.id))){
+          d.expenses.push({id:item.id,category:item.category||'Lainnya',amount:item.amount||0,date:item.date||td(),notes:item.notes||''});
+        }
+      });
+      setD(d);
+    }
+    // Sync income
+    const iRes=await fetch(c.firebaseUrl+'/income.json');
+    const iData=await iRes.json();
+    if(iData&&typeof iData==='object'){
+      const d=getD();
+      const ex=new Set(d.income.map(e=>String(e.id)));
+      Object.values(iData).forEach(item=>{
+        if(item&&!ex.has(String(item.id))){
+          d.income.push({id:item.id,category:item.category||'extra',amount:item.amount||0,date:item.date||td(),notes:item.notes||''});
+        }
+      });
+      setD(d);
+    }
+    renderDash();
+    toast('🔄 Sync Firebase selesai!');
+  }catch(e){
+    // Gagal sync — diam saja, jangan ganggu user
+  }
 }
 function expData(){const b=new Blob([JSON.stringify({data:getD(),config:getC()},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=`finkel_backup_${td()}.json`;a.click();toast('✅ Data diexport');}
 function rstData(){if(!confirm('Hapus SEMUA data? Tidak bisa dibatalkan!'))return;if(!confirm('Konfirmasi: hapus semua data?'))return;localStorage.removeItem(DK);renderDash();toast('Data direset');}
