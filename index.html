@@ -1300,8 +1300,15 @@ function delSel(type){
   if(!selSet[type].size){toast('Pilih transaksi dulu');return;}
   if(!confirm(`Hapus ${selSet[type].size} transaksi?`))return;
   const d=getD();
-  if(type==='inc'){logAction('delete',`Hapus ${selSet[type].size} pemasukan`);d.income=d.income.filter(i=>!selSet[type].has(i.id));}
-  else{logAction('delete',`Hapus ${selSet[type].size} pengeluaran`);d.expenses=d.expenses.filter(e=>!selSet[type].has(e.id));}
+  if(type==='inc'){
+    logAction('delete',`Hapus ${selSet[type].size} pemasukan`);
+    selSet[type].forEach(id=>{addDeleted(id);deleteFromFirebase('income',id);});
+    d.income=d.income.filter(i=>!selSet[type].has(i.id));
+  } else {
+    logAction('delete',`Hapus ${selSet[type].size} pengeluaran`);
+    selSet[type].forEach(id=>{addDeleted(id);deleteFromFirebase('expenses',id);});
+    d.expenses=d.expenses.filter(e=>!selSet[type].has(e.id));
+  }
   setD(d);selMode[type]=false;selSet[type]=new Set();
   document.getElementById(`selB-${type}`).classList.remove('on');
   if(type==='inc')renderInc(); else renderExp();
@@ -1319,7 +1326,13 @@ function addInc(){
   document.getElementById('iA').value='';document.getElementById('iN').value='';document.getElementById('iC').value='';
   DP.set('iD',td());toast('✅ Pemasukan ditambah');renderInc();renderDash();
 }
-function delInc(id){if(!confirm('Hapus?'))return;const d=getD();logAction('delete','Hapus pemasukan');d.income=d.income.filter(i=>i.id!==id);setD(d);renderInc();renderDash();toast('Dihapus');}
+function delInc(id){
+  if(!confirm('Hapus?'))return;
+  const d=getD();logAction('delete','Hapus pemasukan');
+  d.income=d.income.filter(i=>i.id!==id);setD(d);
+  addDeleted(id);deleteFromFirebase('income',id);
+  renderInc();renderDash();toast('Dihapus');
+}
 function renderInc(){
   const items=getD().income.filter(i=>inR(i.date)).reverse();
   const sel=selMode.inc;
@@ -1337,7 +1350,13 @@ function addExp(){
   document.getElementById('eA').value='';document.getElementById('eN').value='';document.getElementById('eC').value='';
   DP.set('eD',td());toast('✅ Pengeluaran ditambah');renderExp();renderDash();
 }
-function delExp(id){if(!confirm('Hapus?'))return;const d=getD();logAction('delete','Hapus pengeluaran');d.expenses=d.expenses.filter(e=>e.id!==id);setD(d);renderExp();renderDash();toast('Dihapus');}
+function delExp(id){
+  if(!confirm('Hapus?'))return;
+  const d=getD();logAction('delete','Hapus pengeluaran');
+  d.expenses=d.expenses.filter(e=>e.id!==id);setD(d);
+  addDeleted(id);deleteFromFirebase('expenses',id);
+  renderExp();renderDash();toast('Dihapus');
+}
 function renderExp(){
   const items=getD().expenses.filter(e=>inR(e.date)).reverse();
   const sel=selMode.exp;
@@ -1750,13 +1769,35 @@ function saveFB(){
   document.getElementById('fbSt').textContent='⏳ Menguji koneksi...';
   fetch(url+'/ping.json').then(r=>{document.getElementById('fbSt').textContent=r.ok?'✅ Koneksi berhasil!':'⚠️ Gagal — cek URL';}).catch(()=>{document.getElementById('fbSt').textContent='⚠️ Tidak bisa terhubung.';});
 }
+// ── DELETED IDS BLACKLIST ──
+function getDeleted(){try{return new Set(JSON.parse(localStorage.getItem('fk_del'))||[]);}catch{return new Set();}}
+function addDeleted(id){const s=getDeleted();s.add(String(id));localStorage.setItem('fk_del',JSON.stringify([...s]));}
+
+async function deleteFromFirebase(type,id){
+  const c=getC();if(!c.firebaseUrl)return;
+  try{await fetch(`${c.firebaseUrl}/${type}/${id}.json`,{method:'DELETE'});}catch{}
+}
+
 async function syncFirebase(){
   const c=getC();if(!c.firebaseUrl)return;
+  const deleted=getDeleted();
   try{
     const eRes=await fetch(c.firebaseUrl+'/expenses.json');const eData=await eRes.json();
-    if(eData&&typeof eData==='object'){const d=getD();const ex=new Set(d.expenses.map(e=>String(e.id)));Object.values(eData).forEach(item=>{if(item&&!ex.has(String(item.id)))d.expenses.push({id:item.id,category:item.category||'Lainnya',amount:item.amount||0,date:item.date||td(),notes:item.notes||''});});setD(d);}
+    if(eData&&typeof eData==='object'){
+      const d=getD();const ex=new Set(d.expenses.map(e=>String(e.id)));
+      Object.values(eData).forEach(item=>{
+        if(item&&!ex.has(String(item.id))&&!deleted.has(String(item.id)))
+          d.expenses.push({id:item.id,category:item.category||'Lainnya',amount:item.amount||0,date:item.date||td(),notes:item.notes||''});
+      });setD(d);
+    }
     const iRes=await fetch(c.firebaseUrl+'/income.json');const iData=await iRes.json();
-    if(iData&&typeof iData==='object'){const d=getD();const ex=new Set(d.income.map(e=>String(e.id)));Object.values(iData).forEach(item=>{if(item&&!ex.has(String(item.id)))d.income.push({id:item.id,category:item.category||'extra',amount:item.amount||0,date:item.date||td(),notes:item.notes||''});});setD(d);}
+    if(iData&&typeof iData==='object'){
+      const d=getD();const ex=new Set(d.income.map(e=>String(e.id)));
+      Object.values(iData).forEach(item=>{
+        if(item&&!ex.has(String(item.id))&&!deleted.has(String(item.id)))
+          d.income.push({id:item.id,category:item.category||'extra',amount:item.amount||0,date:item.date||td(),notes:item.notes||''});
+      });setD(d);
+    }
     renderDash();
   }catch(e){}
 }
