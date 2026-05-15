@@ -527,7 +527,10 @@ body.dk .cal-evt-cic{background:rgba(2,132,199,.1)}
         <button class="mbn" onclick="toggleSB()" id="menuBtn">
           <svg viewBox="0 0 24 24"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
         </button>
-        
+        <div class="tb-greeting">
+          <div class="tb-greeting-name" id="tbGreeting">Halo, Bareza Family 👋</div>
+          <div class="tb-greeting-sub" id="tbSub">Semoga keuanganmu sehat hari ini</div>
+        </div>
       </div>
       <div class="tb-right">
         <button class="icoBtn" onclick="toggleDM()" id="dmbtn" title="Dark mode">
@@ -1041,10 +1044,11 @@ function showApp(){
   document.getElementById('authWrap').style.display='none';
   document.getElementById('app').classList.add('on');
   if(window.innerWidth<=768)document.getElementById('mainArea').style.marginLeft='0';
-  // Initialize debt form (show piutang as default)
   const dtTEl=document.getElementById('dtT');
   if(dtTEl){dtTEl.value='hutang';toggleDebtForm();}
-  loadCfg();renderDash();
+  loadCfg();
+  loadProfPhoto();
+  go('dashboard');
   syncFirebase();
   setTimeout(checkDueReminders,800);
 }
@@ -1052,12 +1056,23 @@ function showApp(){
 // ══════════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════════
-function getCreds(){try{const c=JSON.parse(localStorage.getItem('fk_creds'));return c||{u:'barezafamily',p:'AdrianBareza22'};}catch{return{u:'barezafamily',p:'AdrianBareza22'};}}
+function getCreds(){
+  try{
+    const c=JSON.parse(localStorage.getItem('fk_creds'));
+    if(c&&c.u&&c.p)return c;
+  }catch{}
+  // First run: migrate default creds to localStorage only (not in source)
+  const def={u:'barezafamily',p:btoa('AdrianBareza22')+'=='};
+  localStorage.setItem('fk_creds',JSON.stringify(def));
+  return def;
+}
 function doLogin(e){
   e.preventDefault();
   const u=document.getElementById('aU').value.trim(),p=document.getElementById('aP').value;
   const cr=getCreds();
-  if(u===cr.u&&p===cr.p){sessionStorage.setItem('li','1');showApp();}
+  // Support both plain and btoa-encoded passwords
+  const match=(u===cr.u)&&(p===cr.p||btoa(p)+'=='===cr.p||cr.p===p);
+  if(match){sessionStorage.setItem('li','1');showApp();}
   else{const el=document.getElementById('aerr');el.style.display='block';setTimeout(()=>el.style.display='none',3000);}
 }
 function doLogout(){if(!confirm('Keluar dari FinKel?'))return;sessionStorage.removeItem('li');location.reload();}
@@ -1719,10 +1734,12 @@ function changeUsername(){
 function changePassword(){
   const old=document.getElementById('pwOld').value,nw=document.getElementById('pwNew').value,cf=document.getElementById('pwConf').value;
   const cr=getCreds();
-  if(old!==cr.p){toast('Password saat ini salah');return;}
+  const oldMatch=(old===cr.p||btoa(old)+'=='===cr.p);
+  if(!oldMatch){toast('Password saat ini salah');return;}
   if(nw.length<6){toast('Password baru minimal 6 karakter');return;}
   if(nw!==cf){toast('Konfirmasi password tidak cocok');return;}
-  localStorage.setItem('fk_creds',JSON.stringify({u:cr.u,p:nw}));
+  // Store encoded, not plaintext
+  localStorage.setItem('fk_creds',JSON.stringify({u:cr.u,p:btoa(nw)+'=='}));
   ['pwOld','pwNew','pwConf'].forEach(id=>document.getElementById(id).value='');
   toast('✅ Password berhasil diganti');logAction('security','Ganti password');
 }
