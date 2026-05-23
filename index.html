@@ -869,7 +869,8 @@ body.dk .cal-evt-cic{background:rgba(2,132,199,.1)}
             <div class="fg"><label class="fl">URL Firebase Database</label><input type="text" class="fi" id="fbU" placeholder="https://finkel-xxxxx.firebaseio.com"></div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <button class="btn bacc" onclick="saveFB()">Simpan &amp; Test</button>
-              <button class="btn bghost" onclick="syncFirebase()">Sync Manual</button>
+              <button class="btn bghost" onclick="syncFirebase()">Sync dari Firebase</button>
+              <button class="btn bghost" onclick="pushAllToFB()">⬆️ Upload Semua ke Firebase</button>
             </div>
             <div id="fbSt" style="font-size:12.5px;margin-top:8px;color:var(--t3)"></div>
           </div>
@@ -1111,13 +1112,43 @@ function toggleSB(){document.getElementById('sb').classList.toggle('on');documen
 function closeSB(){document.getElementById('sb').classList.remove('on');document.getElementById('ov').style.display='none';}
 
 // ══════════════════════════════════════════════
-// DATA
+// DATA — Firebase sebagai sumber utama
 // ══════════════════════════════════════════════
 function getD(){try{return JSON.parse(localStorage.getItem(DK))||dfl();}catch{return dfl();}}
 function dfl(){return{income:[],expenses:[],debts:[],cicilans:[],savings:[],sal:{s:0,i:0},reminders:[],recurring:[],auditLog:[]};}
 function setD(d){localStorage.setItem(DK,JSON.stringify(d));}
 function getC(){try{return JSON.parse(localStorage.getItem(CK))||{};}catch{return {};}}
 function setC(c){localStorage.setItem(CK,JSON.stringify(c));}
+
+// Push SATU item ke Firebase (fire-and-forget, tidak block UI)
+function pushToFB(collection, item){
+  const c=getC();if(!c.firebaseUrl)return;
+  fetch(`${c.firebaseUrl}/${collection}/${item.id}.json`,{
+    method:'PUT',
+    body:JSON.stringify(item)
+  }).catch(()=>{});// silent fail — sudah tersimpan di localStorage
+}
+
+// Push SELURUH data ke Firebase (dipakai saat pertama setup)
+async function pushAllToFB(){
+  const c=getC();if(!c.firebaseUrl){toast('⚠️ URL Firebase belum diisi di Pengaturan → Telegram Bot');return;}
+  toast('⏳ Mengupload semua data ke Firebase...');
+  const d=getD();
+  try{
+    // Push expenses
+    const expObj={};d.expenses.forEach(e=>expObj[e.id]=e);
+    await fetch(`${c.firebaseUrl}/expenses.json`,{method:'PUT',body:JSON.stringify(expObj)});
+    // Push income
+    const incObj={};d.income.forEach(i=>incObj[i.id]=i);
+    await fetch(`${c.firebaseUrl}/income.json`,{method:'PUT',body:JSON.stringify(incObj)});
+    // Push debts, savings, cicilans
+    await fetch(`${c.firebaseUrl}/debts.json`,{method:'PUT',body:JSON.stringify(d.debts||[])});
+    await fetch(`${c.firebaseUrl}/savings.json`,{method:'PUT',body:JSON.stringify(d.savings||[])});
+    await fetch(`${c.firebaseUrl}/cicilans.json`,{method:'PUT',body:JSON.stringify(d.cicilans||[])});
+    await fetch(`${c.firebaseUrl}/sal.json`,{method:'PUT',body:JSON.stringify(d.sal||{s:0,i:0})});
+    toast('✅ Semua data berhasil diupload ke Firebase!');
+  }catch(e){toast('❌ Gagal upload — cek koneksi internet');}
+}
 
 // ══════════════════════════════════════════════
 // AUDIT LOG
@@ -1321,7 +1352,10 @@ function delSel(type){
 function addInc(){
   const cat=document.getElementById('iC').value,amt=uf(document.getElementById('iA').value),date=DP.get('iD'),note=document.getElementById('iN').value;
   if(!cat||!amt||!date){toast('Isi semua field wajib');return;}
-  const d=getD(),id=Date.now();d.income.push({id,category:cat,amount:amt,date,notes:note});setD(d);
+  const d=getD(),id=Date.now();
+  const item={id,category:cat,amount:amt,date,notes:note};
+  d.income.push(item);setD(d);
+  pushToFB('income',item);
   logAction('income',`Pemasukan: ${cat}`,amt);
   document.getElementById('iA').value='';document.getElementById('iN').value='';document.getElementById('iC').value='';
   DP.set('iD',td());toast('✅ Pemasukan ditambah');renderInc();renderDash();
@@ -1345,7 +1379,10 @@ function renderInc(){
 function addExp(){
   const cat=document.getElementById('eC').value,amt=uf(document.getElementById('eA').value),date=DP.get('eD'),note=document.getElementById('eN').value;
   if(!cat||!amt||!date){toast('Isi semua field wajib');return;}
-  const d=getD(),id=Date.now();d.expenses.push({id,category:cat,amount:amt,date,notes:note});setD(d);
+  const d=getD(),id=Date.now();
+  const item={id,category:cat,amount:amt,date,notes:note};
+  d.expenses.push(item);setD(d);
+  pushToFB('expenses',item);
   logAction('expense',`Pengeluaran: ${cat}`,amt);
   document.getElementById('eA').value='';document.getElementById('eN').value='';document.getElementById('eC').value='';
   DP.set('eD',td());toast('✅ Pengeluaran ditambah');renderExp();renderDash();
@@ -1416,7 +1453,10 @@ function addHutangCic(){
 function addDebt(){
   const type=document.getElementById('dtT').value,name=document.getElementById('dtN').value.trim(),amt=uf(document.getElementById('dtA').value),date=DP.get('dtD');
   if(!name||!amt||!date){toast('Isi semua field wajib');return;}
-  const d=getD();d.debts.push({id:Date.now(),type,name,amount:amt,date,status:'aktif'});setD(d);
+  const d=getD();
+  const item={id:Date.now(),type,name,amount:amt,date,status:'aktif'};
+  d.debts.push(item);setD(d);
+  pushToFB('debts_list',item);
   logAction('debt',`Piutang: ${name}`,amt);
   document.getElementById('dtN').value='';document.getElementById('dtA').value='';DP.set('dtD',td());
   toast('✅ Ditambah');renderDebt();
@@ -1508,7 +1548,11 @@ function renderCic(){
 function addSv(){
   const name=document.getElementById('svN').value.trim(),target=uf(document.getElementById('svT').value),current=uf(document.getElementById('svC').value);
   if(!name||!target){toast('Isi nama dan target');return;}
-  const d=getD();d.savings.push({id:Date.now(),name,target,current:current||0});setD(d);
+  const d=getD();
+  const item={id:Date.now(),name,target,current:current||0};
+  d.savings.push(item);setD(d);
+  // Push full savings array ke Firebase
+  const c=getC();if(c.firebaseUrl)fetch(c.firebaseUrl+'/savings.json',{method:'PUT',body:JSON.stringify(d.savings)}).catch(()=>{});
   ['svN','svT','svC'].forEach(id=>document.getElementById(id).value='');
   toast('✅ Tabungan ditambah');renderSv();
 }
@@ -1740,7 +1784,14 @@ function saveSt(){
   if(!c.displayName&&c.namaSuami)c.displayName=null; // reset so combo name takes over
   setC(c);loadCfg();loadProfPhoto();logAction('settings','Perbarui profil');toast('✅ Profil disimpan');
 }
-function saveGj(){const d=getD();d.sal.s=uf(document.getElementById('sGS2').value);d.sal.i=uf(document.getElementById('sGI2').value);setD(d);renderDash();toast('✅ Gaji disimpan');}
+function saveGj(){
+  const d=getD();
+  d.sal.s=uf(document.getElementById('sGS2').value);
+  d.sal.i=uf(document.getElementById('sGI2').value);
+  setD(d);
+  const c=getC();if(c.firebaseUrl)fetch(c.firebaseUrl+'/sal.json',{method:'PUT',body:JSON.stringify(d.sal)}).catch(()=>{});
+  renderDash();toast('✅ Gaji disimpan');
+}
 function changeUsername(){
   const old=document.getElementById('unOld').value.trim(),nw=document.getElementById('unNew').value.trim();
   const cr=getCreds();
@@ -1778,11 +1829,14 @@ async function deleteFromFirebase(type,id){
   try{await fetch(`${c.firebaseUrl}/${type}/${id}.json`,{method:'DELETE'});}catch{}
 }
 
+// ── SYNC UTAMA — Firebase → localStorage ──
 async function syncFirebase(){
   const c=getC();if(!c.firebaseUrl)return;
   const deleted=getDeleted();
   try{
-    const eRes=await fetch(c.firebaseUrl+'/expenses.json');const eData=await eRes.json();
+    // Expenses
+    const eRes=await fetch(c.firebaseUrl+'/expenses.json');
+    const eData=await eRes.json();
     if(eData&&typeof eData==='object'){
       const d=getD();const ex=new Set(d.expenses.map(e=>String(e.id)));
       Object.values(eData).forEach(item=>{
@@ -1790,13 +1844,41 @@ async function syncFirebase(){
           d.expenses.push({id:item.id,category:item.category||'Lainnya',amount:item.amount||0,date:item.date||td(),notes:item.notes||''});
       });setD(d);
     }
-    const iRes=await fetch(c.firebaseUrl+'/income.json');const iData=await iRes.json();
+    // Income
+    const iRes=await fetch(c.firebaseUrl+'/income.json');
+    const iData=await iRes.json();
     if(iData&&typeof iData==='object'){
       const d=getD();const ex=new Set(d.income.map(e=>String(e.id)));
       Object.values(iData).forEach(item=>{
         if(item&&!ex.has(String(item.id))&&!deleted.has(String(item.id)))
           d.income.push({id:item.id,category:item.category||'extra',amount:item.amount||0,date:item.date||td(),notes:item.notes||''});
       });setD(d);
+    }
+    // Debts dari Firebase (jika ada)
+    const dtRes=await fetch(c.firebaseUrl+'/debts.json');
+    const dtData=await dtRes.json();
+    if(Array.isArray(dtData)&&dtData.length>0){
+      const d=getD();const ex=new Set(d.debts.map(x=>String(x.id)));
+      dtData.forEach(item=>{if(item&&!ex.has(String(item.id)))d.debts.push(item);});
+      setD(d);
+    }
+    // Savings dari Firebase (jika ada)
+    const svRes=await fetch(c.firebaseUrl+'/savings.json');
+    const svData=await svRes.json();
+    if(Array.isArray(svData)&&svData.length>0){
+      const d=getD();if(!d.savings.length){d.savings=svData;setD(d);}
+    }
+    // Cicilans dari Firebase (jika ada)
+    const ccRes=await fetch(c.firebaseUrl+'/cicilans.json');
+    const ccData=await ccRes.json();
+    if(Array.isArray(ccData)&&ccData.length>0){
+      const d=getD();if(!d.cicilans.length){d.cicilans=ccData;setD(d);}
+    }
+    // Gaji dari Firebase
+    const salRes=await fetch(c.firebaseUrl+'/sal.json');
+    const salData=await salRes.json();
+    if(salData&&(salData.s||salData.i)){
+      const d=getD();if(!d.sal.s&&!d.sal.i){d.sal=salData;setD(d);}
     }
     renderDash();
   }catch(e){}
