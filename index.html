@@ -1816,6 +1816,117 @@ function saveEditCic(){
   toast('✅ Cicilan diperbarui'+(autoPaid>0?' · '+autoPaid+' bulan otomatis lunas':''));
   renderCic();renderDash();
 }
+
+// ── SETTINGS & PROFILE ──
+function loadCfg(){
+  const c=getC(),d=getD();
+  const nm=c.displayName||(c.namaSuami&&c.namaIstri?c.namaSuami+' & '+c.namaIstri:'FinKel');
+  // Topbar greeting & name
+  const tbPname=document.getElementById('tbPname');
+  const tbGreeting=document.getElementById('tbGreeting');
+  if(tbPname)tbPname.textContent=nm;
+  if(tbGreeting)tbGreeting.textContent='Halo, '+nm+' 👋';
+  // Settings form fields
+  if(document.getElementById('sDispName'))document.getElementById('sDispName').value=c.displayName||'';
+  if(document.getElementById('sNS'))document.getElementById('sNS').value=c.namaSuami||'';
+  if(document.getElementById('sNI'))document.getElementById('sNI').value=c.namaIstri||'';
+  if(document.getElementById('sNA'))document.getElementById('sNA').value=c.namaAnak||'';
+  if(document.getElementById('sE1'))document.getElementById('sE1').value=c.email1||'';
+  if(document.getElementById('sGS2'))document.getElementById('sGS2').value=d.sal.s?d.sal.s.toLocaleString('id-ID').replace(/,/g,'.'):'';
+  if(document.getElementById('sGI2'))document.getElementById('sGI2').value=d.sal.i?d.sal.i.toLocaleString('id-ID').replace(/,/g,'.'):'';
+  if(document.getElementById('fbU'))document.getElementById('fbU').value=c.firebaseUrl||'';
+  if(document.getElementById('fbU2'))document.getElementById('fbU2').value=c.firebaseUrl||'';
+  if(document.getElementById('profNameDisp'))document.getElementById('profNameDisp').textContent=nm;
+}
+function loadProfPhoto(){
+  const c=getC();
+  const nm=c.displayName||(c.namaSuami&&c.namaIstri?c.namaSuami+' & '+c.namaIstri:'FinKel');
+  const init=nm[0].toUpperCase();
+  const ph=c.profilePhoto;
+  const ini=document.getElementById('profIni');
+  const img=document.getElementById('profImg');
+  const tbPav=document.getElementById('tbPav');
+  if(ph){
+    if(img){img.src=ph;img.style.display='block';img.style.borderRadius='50%';}
+    if(ini)ini.style.display='none';
+    if(tbPav)tbPav.innerHTML='<img src="'+ph+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">';
+  } else {
+    if(img)img.style.display='none';
+    if(ini){ini.style.display='flex';ini.textContent=init;}
+    if(tbPav)tbPav.textContent=init;
+  }
+}
+function saveSt(){
+  const c=getC();
+  c.displayName=document.getElementById('sDispName')?.value.trim()||null;
+  c.namaSuami=document.getElementById('sNS')?.value||'';
+  c.namaIstri=document.getElementById('sNI')?.value||'';
+  c.namaAnak=document.getElementById('sNA')?.value||'';
+  c.email1=document.getElementById('sE1')?.value||'';
+  setC(c);
+  if(c.firebaseUrl){
+    const cfSync={displayName:c.displayName,namaSuami:c.namaSuami,namaIstri:c.namaIstri,namaAnak:c.namaAnak,email1:c.email1};
+    fetch(c.firebaseUrl+'/config.json',{method:'PATCH',body:JSON.stringify(cfSync)}).catch(()=>{});
+  }
+  loadCfg();loadProfPhoto();
+  logAction('settings','Perbarui profil');
+  toast('✅ Profil disimpan');
+}
+function saveGj(){
+  const d=getD();
+  d.sal.s=uf(document.getElementById('sGS2')?.value||'0');
+  d.sal.i=uf(document.getElementById('sGI2')?.value||'0');
+  setD(d);
+  const c=getC();
+  if(c.firebaseUrl)fetch(c.firebaseUrl+'/sal.json',{method:'PUT',body:JSON.stringify(d.sal)}).catch(()=>{});
+  renderDash();toast('✅ Gaji disimpan');
+}
+function uploadPhoto(e){
+  const file=e.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=ev=>{const c=getC();c.profilePhoto=ev.target.result;setC(c);loadProfPhoto();toast('✅ Foto profil diperbarui');};
+  r.readAsDataURL(file);
+}
+function saveFB(){
+  const url=(document.getElementById('fbU')?.value||'').trim();
+  if(!url){toast('Masukkan URL Firebase');return;}
+  const c=getC();c.firebaseUrl=url;setC(c);
+  if(document.getElementById('fbU2'))document.getElementById('fbU2').value=url;
+  const st=document.getElementById('fbSt');
+  if(st)st.textContent='⏳ Menguji koneksi...';
+  fetch(url+'/ping.json')
+    .then(r=>{
+      const msg=r.ok?'✅ Koneksi berhasil! Menyinkron data...':'⚠️ Gagal — cek URL Firebase';
+      if(st)st.textContent=msg;
+      if(r.ok)syncFirebase().then(()=>{if(st)st.textContent='✅ Tersambung & data tersinkron!';});
+    })
+    .catch(()=>{if(st)st.textContent='⚠️ Tidak bisa terhubung. Cek URL & internet.';});
+}
+function saveFB2(){
+  const url=(document.getElementById('fbU2')?.value||'').trim();
+  if(!url){toast('Masukkan URL Firebase');return;}
+  const c=getC();c.firebaseUrl=url;setC(c);
+  if(document.getElementById('fbU'))document.getElementById('fbU').value=url;
+  const st=document.getElementById('fbSt2');
+  if(st)st.textContent='⏳ Menguji koneksi...';
+  fetch(url+'/ping.json')
+    .then(r=>{
+      const msg=r.ok?'✅ Koneksi berhasil! Menyinkron data...':'⚠️ Gagal — cek URL Firebase';
+      if(st)st.textContent=msg;
+      if(r.ok)syncFirebase().then(()=>{if(st)st.textContent='✅ Tersambung & data tersinkron!';});
+    })
+    .catch(()=>{if(st)st.textContent='⚠️ Tidak bisa terhubung. Cek URL & internet.';});
+}
+function expData(){
+  const b=new Blob([JSON.stringify({data:getD(),config:getC()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download='finkel_backup_'+td()+'.json';a.click();toast('✅ Exported');
+}
+function rstData(){
+  if(!confirm('Hapus SEMUA data lokal?'))return;
+  if(!confirm('Yakin? Ini tidak bisa dibatalkan.'))return;
+  localStorage.removeItem(DK);renderDash();toast('Data direset');
+}
 </script>
 </body>
 </html>
