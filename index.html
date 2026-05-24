@@ -188,8 +188,8 @@ input[type=checkbox]{accent-color:var(--accent);width:15px;height:15px;cursor:po
 .cal-mini-d.hasx::after{content:"";width:4px;height:4px;border-radius:50%;background:var(--accent);display:block}
 .cal-mini-d.today.hasx::after{background:#fff}
 .cal-mini-d.om{opacity:.3}
-.cal-day-hdr{font-size:14px;font-weight:700;color:var(--text);margin:14px 0 10px;padding-bottom:10px;border-bottom:1px solid var(--borderl)}
-.cal-evt{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:6px;border-left:3px solid}
+.cal-day-hdr{font-size:15px;font-weight:700;color:var(--text);margin:14px 0 12px;padding-bottom:10px;border-bottom:1px solid var(--borderl)}
+.cal-evt{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:12px;margin-bottom:8px;border-left:4px solid}
 .cal-evt-inc{border-color:#10b981;background:#f0fdf4}
 body.dk .cal-evt-inc{background:rgba(16,185,129,.1)}
 .cal-evt-exp{border-color:#ef4444;background:#fef2f2}
@@ -198,8 +198,9 @@ body.dk .cal-evt-exp{background:rgba(239,68,68,.1)}
 body.dk .cal-evt-rem{background:rgba(245,158,11,.1)}
 .cal-evt-cic{border-color:#0284c7;background:#f0f9ff}
 body.dk .cal-evt-cic{background:rgba(2,132,199,.1)}
-.cal-evt-title{font-size:13px;font-weight:600;flex:1}
-.cal-evt-amt{font-size:13px;font-weight:700;flex-shrink:0}
+.cal-evt-title{font-size:14.5px;font-weight:700;flex:1;line-height:1.3}
+.cal-evt-sub{font-size:11.5px;color:var(--t3);margin-top:2px}
+.cal-evt-amt{font-size:16px;font-weight:800;flex-shrink:0}
 .stabs{display:flex;gap:4px;background:var(--sf2);padding:4px;border-radius:var(--rs);margin-bottom:20px;overflow-x:auto}
 .stab{flex:1;text-align:center;padding:9px 10px;border-radius:9px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;color:var(--t2);user-select:none;white-space:nowrap;min-width:fit-content}
 .stab.on{background:var(--surface);color:var(--text);box-shadow:var(--sh)}
@@ -459,7 +460,7 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
         </div>
         <div class="g2 mb4">
           <div class="fc"><div class="fcl">Hutang Aktif</div><div class="fca" id="dH">Rp 0</div></div>
-          <div class="fc"><div class="fcl">Piutang Aktif</div><div class="fca" id="dP">Rp 0</div></div>
+          <div class="fc" style="cursor:pointer" onclick="go('cicilan')"><div class="fcl">Cicilan Bulan Ini</div><div class="fca" id="dCicTotal">Rp 0</div><div style="font-size:10px;opacity:.5;margin-top:2px" id="dCicCount">—</div></div>
         </div>
         <div class="hero">
           <div class="hero-lbl">Saldo Bersih Periode Ini</div>
@@ -488,8 +489,21 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
           <div class="card"><div class="sh"><div class="st">Pemasukan Terbaru</div></div><div id="dIL"></div></div>
           <div class="card"><div class="sh"><div class="st">Pengeluaran Terbaru</div></div><div id="dEL"></div></div>
         </div>
+        <div class="card mb6">
+          <div class="sh">
+            <div class="st">Cicilan Bulan Ini</div>
+            <button class="btn bghost bsm" onclick="go('cicilan')">Semua Cicilan</button>
+          </div>
+          <div id="dCicList"></div>
+        </div>
+        <div class="card mb6">
+          <div class="sh">
+            <div class="st">Budget Bulan Ini</div>
+            <button class="btn bghost bsm" onclick="go('budget')">Set Budget</button>
+          </div>
+          <div id="dBudget"></div>
+        </div>
         <div class="card mb6"><div class="sh"><div class="st">Status Tabungan</div></div><div id="dSV"></div></div>
-        <div class="card"><div class="sh"><div class="st">Budget Bulan Ini</div><button class="btn bghost bsm" onclick="go('budget')">Lihat Semua</button></div><div id="dBudget"></div></div>
         <div style="height:80px"></div>
       </div>
 
@@ -1341,8 +1355,50 @@ function renderDash(){
   const st=getStatus();
   const scEl=document.getElementById('dashStatusChip');
   if(scEl)scEl.innerHTML=`<div class="dsc ${st.cls}"><div class="dsc-dot"></div><span>${st.msg}</span></div>`;
+
+  // Hutang aktif
   document.getElementById('dH').textContent=fmt(d.debts.filter(x=>x.type==='hutang'&&x.status!=='lunas').reduce((s,x)=>s+x.amount,0));
-  document.getElementById('dP').textContent=fmt(d.debts.filter(x=>x.type==='piutang'&&x.status!=='lunas').reduce((s,x)=>s+x.amount,0));
+
+  // Cicilan bulan ini
+  const now=new Date();
+  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  const cicBulanIni=[];
+  (d.cicilans||[]).forEach(c=>{
+    c.pays.forEach(p=>{
+      if(!p.paid && p.due && p.due.startsWith(thisMonth)){
+        cicBulanIni.push({name:c.name,due:p.due,total:p.total,paid:p.paid});
+      }
+    });
+  });
+  const cicTotal=cicBulanIni.reduce((s,x)=>s+x.total,0);
+  const cicCountEl=document.getElementById('dCicCount');
+  const cicTotalEl=document.getElementById('dCicTotal');
+  if(cicTotalEl)cicTotalEl.textContent=fmt(cicTotal);
+  if(cicCountEl)cicCountEl.textContent=cicBulanIni.length?`${cicBulanIni.length} tagihan`:'Tidak ada cicilan';
+
+  const cicListEl=document.getElementById('dCicList');
+  if(cicListEl){
+    if(!cicBulanIni.length){
+      cicListEl.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>Tidak ada cicilan jatuh tempo bulan ini</p></div>`;
+    } else {
+      cicListEl.innerHTML=cicBulanIni.map(x=>{
+        const diff=Math.ceil((new Date(x.due+'T00:00:00')-now)/(1000*60*60*24));
+        const urgCls=diff<=0?'bdn':diff<=5?'bwn':'bok';
+        const urgLbl=diff===0?'Hari ini!':diff<0?`${Math.abs(diff)}h lalu`:diff===1?'Besok':`${diff} hari lagi`;
+        return `<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--borderl)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.name}</div>
+            <div style="font-size:11.5px;color:var(--t3);margin-top:2px">Jatuh tempo ${fmtDs(x.due)}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:15px;font-weight:800;color:var(--accent)">${fmt(x.total)}</div>
+            <span class="bdg ${urgCls}" style="font-size:10px;margin-top:2px;display:inline-block">${urgLbl}</span>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
   document.getElementById('hAmt').textContent=fmt(ti-te);
   document.getElementById('hInc').textContent=fmt(ti);
   document.getElementById('hExp').textContent=fmt(te);
@@ -1350,18 +1406,24 @@ function renderDash(){
   document.getElementById('sGI').textContent=fmt(d.sal.i||0);
   document.getElementById('sBi').textContent=fmt(inc.filter(i=>i.category==='fnb').reduce((s,i)=>s+i.amount,0));
   document.getElementById('sEx').textContent=fmt(inc.filter(i=>i.category==='extra').reduce((s,i)=>s+i.amount,0));
+
   const emp=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg><p>Belum ada data</p></div>`;
   document.getElementById('dIL').innerHTML=[...inc].reverse().slice(0,5).map(i=>txH(i,'inc')).join('')||emp;
   document.getElementById('dEL').innerHTML=[...exp].reverse().slice(0,5).map(e=>txH(e,'exp')).join('')||emp;
-  const sv=d.savings||[];
-  document.getElementById('dSV').innerHTML=sv.length?sv.map(s=>`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:13.5px;font-weight:600">${s.name}</span><span style="font-size:12px;color:var(--t3)">${fmt(s.current)} / ${fmt(s.target)}</span></div><div class="pb"><div class="pf" style="width:${Math.min(100,s.target?s.current/s.target*100:0)}%"></div></div></div>`).join(''):emp;
+
+  // Budget
   const budgets=d.budgets||{};const spent=getMonthExp();const bKeys=Object.keys(budgets).slice(0,4);
   document.getElementById('dBudget').innerHTML=bKeys.length?bKeys.map(cat=>{
     const s=spent[cat]||0,limit=budgets[cat],pct=Math.min(100,Math.round(s/limit*100));
     const cls=pct>=100?'budget-over':pct>=80?'budget-warn':'budget-ok';
     const pbCls=pct>=100?'pb-over':pct>=80?'pb-warn':'';
     return `<div class="budget-row"><div class="budget-info"><div class="budget-name">${cat}</div><div class="budget-nums">${fmt(s)} / ${fmt(limit)}</div><div class="pb"><div class="pf ${pbCls}" style="width:${pct}%"></div></div></div><span class="budget-pct ${cls}">${pct}%</span></div>`;
-  }).join(''):'<div style="font-size:13px;color:var(--t3);padding:8px 0">Set budget di menu Budget →</div>';
+  }).join(''):`<div style="font-size:13px;color:var(--t3);padding:8px 0">Belum ada budget. Klik <strong>Set Budget</strong> di atas untuk mulai.</div>`;
+
+  // Tabungan
+  const sv=d.savings||[];
+  document.getElementById('dSV').innerHTML=sv.length?sv.map(s=>`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:13.5px;font-weight:600">${s.name}</span><span style="font-size:12px;color:var(--t3)">${fmt(s.current)} / ${fmt(s.target)}</span></div><div class="pb"><div class="pf" style="width:${Math.min(100,s.target?s.current/s.target*100:0)}%"></div></div></div>`).join(''):emp;
+
   setTimeout(renderTrendChart,50);
 }
 
@@ -1695,13 +1757,48 @@ function renderCal(){
     g+=`<div class="cal-mini-d ${isT?'today':''} ${isSel&&!isT?'sel':''} ${hasX?'hasx':''}" onclick="calSelectDay(${day})">${day}</div>`;
   }
   document.getElementById('calMiniGrid').innerHTML=g;
+
+  const evCls={income:'cal-evt-inc',expense:'cal-evt-exp',reminder:'cal-evt-rem',cicilan:'cal-evt-cic'};
+  const amtCls={income:'#059669',expense:'#dc2626',reminder:'#d97706',cicilan:'#0284c7'};
+  const typeLabel={income:'Pemasukan',expense:'Pengeluaran',reminder:'Tagihan',cicilan:'Cicilan'};
+
+  // Kalau ada hari dipilih, tampilkan detail hari itu dulu, lalu ringkasan bulan
   const selD=calSelDay||1;
   const dayNames=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
   document.getElementById('calDayTitle').textContent=`${dayNames[new Date(calY,calM,selD).getDay()]}, ${selD} ${MONTHS_ID[calM]} ${calY}`;
+
   const dayEvs=evs[selD]||[];
-  const evCls={income:'cal-evt-inc',expense:'cal-evt-exp',reminder:'cal-evt-rem',cicilan:'cal-evt-cic'};
-  const amtCls={income:'#059669',expense:'#dc2626',reminder:'#d97706',cicilan:'#0284c7'};
-  document.getElementById('calTimeline').innerHTML=dayEvs.length?dayEvs.map(ev=>`<div class="cal-evt ${evCls[ev.type]||''}"><div style="flex:1"><div class="cal-evt-title">${ev.label}</div></div><div class="cal-evt-amt" style="color:${amtCls[ev.type]||'var(--text)'}">${fmt(ev.amount)}</div></div>`).join(''):'<div style="text-align:center;padding:20px 0;font-size:13px;color:var(--t3)">Tidak ada transaksi hari ini</div>';
+  const dayHTML=dayEvs.length
+    ?dayEvs.map(ev=>`<div class="cal-evt ${evCls[ev.type]||''}">
+        <div style="flex:1;min-width:0">
+          <div class="cal-evt-title">${ev.label}</div>
+          <div class="cal-evt-sub">${typeLabel[ev.type]||''}</div>
+        </div>
+        <div class="cal-evt-amt" style="color:${amtCls[ev.type]||'var(--text)'}">${fmt(ev.amount)}</div>
+      </div>`).join('')
+    :`<div style="text-align:center;padding:14px 0;font-size:13px;color:var(--t3)">Tidak ada transaksi hari ini</div>`;
+
+  // Ringkasan bulan — semua event, dikelompokkan per hari, hanya cicilan & tagihan
+  const monthCicRem=[];
+  for(let day=1;day<=dim;day++){
+    if(!evs[day])continue;
+    evs[day].filter(ev=>ev.type==='cicilan'||ev.type==='reminder').forEach(ev=>{
+      monthCicRem.push({day,ev});
+    });
+  }
+  const monthHTML=monthCicRem.length
+    ?`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);margin:18px 0 10px;padding-top:14px;border-top:1px solid var(--borderl)">Semua Cicilan &amp; Tagihan Bulan ${MONTHS_ID[calM]}</div>`
+    +monthCicRem.map(({day,ev})=>`<div class="cal-evt ${evCls[ev.type]||''}">
+        <div style="width:28px;height:28px;border-radius:8px;background:rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;color:${amtCls[ev.type]}">${day}</div>
+        <div style="flex:1;min-width:0">
+          <div class="cal-evt-title">${ev.label}</div>
+          <div class="cal-evt-sub">Tgl ${day} ${MONTHS_ID[calM]}</div>
+        </div>
+        <div class="cal-evt-amt" style="color:${amtCls[ev.type]||'var(--text)'}">${fmt(ev.amount)}</div>
+      </div>`).join('')
+    :'';
+
+  document.getElementById('calTimeline').innerHTML=dayHTML+monthHTML;
 }
 
 // ── AUDIT LOG ──
