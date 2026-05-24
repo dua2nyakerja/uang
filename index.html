@@ -1046,13 +1046,14 @@ async function syncFirebase(){
   const c=getC();if(!c.firebaseUrl)return;
   const del=getDeleted();
   try{
-    const [eR,iR,dtR,svR,ccR,salR]=await Promise.all([
+    const [eR,iR,dtR,svR,ccR,salR,cfR]=await Promise.all([
       fetch(c.firebaseUrl+'/expenses.json'),fetch(c.firebaseUrl+'/income.json'),
       fetch(c.firebaseUrl+'/debts.json'),fetch(c.firebaseUrl+'/savings.json'),
       fetch(c.firebaseUrl+'/cicilans.json'),fetch(c.firebaseUrl+'/sal.json'),
+      fetch(c.firebaseUrl+'/config.json'),
     ]);
-    const [eData,iData,dtData,svData,ccData,salData]=await Promise.all([
-      eR.json(),iR.json(),dtR.json(),svR.json(),ccR.json(),salR.json()
+    const [eData,iData,dtData,svData,ccData,salData,cfData]=await Promise.all([
+      eR.json(),iR.json(),dtR.json(),svR.json(),ccR.json(),salR.json(),cfR.json()
     ]);
     const d=getD();
     if(eData&&typeof eData==='object'){
@@ -1073,7 +1074,20 @@ async function syncFirebase(){
     if(Array.isArray(svData)&&svData.length&&!d.savings.length)d.savings=svData;
     if(Array.isArray(ccData)&&ccData.length&&!d.cicilans.length)d.cicilans=ccData;
     if(salData&&(salData.s||salData.i)&&!d.sal.s&&!d.sal.i)d.sal=salData;
-    setD(d);renderDash();
+    // Sync config (nama, display name, dll) — tapi pertahankan firebaseUrl lokal
+    if(cfData&&typeof cfData==='object'){
+      const localUrl=c.firebaseUrl; // simpan URL lokal dulu
+      const merged={...cfData,...c};  // lokal menang untuk field yang sudah ada
+      merged.firebaseUrl=localUrl;    // pastikan URL tidak ditimpa
+      // Kalau lokal masih default (belum diset), ambil dari Firebase
+      if(!c.displayName&&cfData.displayName)merged.displayName=cfData.displayName;
+      if(!c.namaSuami&&cfData.namaSuami)merged.namaSuami=cfData.namaSuami;
+      if(!c.namaIstri&&cfData.namaIstri)merged.namaIstri=cfData.namaIstri;
+      if(!c.profilePhoto&&cfData.profilePhoto)merged.profilePhoto=cfData.profilePhoto;
+      if(!c.email1&&cfData.email1)merged.email1=cfData.email1;
+      setC(merged);
+    }
+    setD(d);loadCfg();loadProfPhoto();renderDash();
   }catch{}
 }
 
@@ -1766,7 +1780,13 @@ function saveSt(){
   c.namaIstri=document.getElementById('sNI').value||'';
   c.namaAnak=document.getElementById('sNA').value||'';
   c.email1=document.getElementById('sE1').value||'';
-  setC(c);loadCfg();loadProfPhoto();logAction('settings','Perbarui profil');toast('✅ Profil disimpan');
+  setC(c);
+  // Push config ke Firebase (tanpa profilePhoto besar agar tidak melebihi limit)
+  if(c.firebaseUrl){
+    const cfToSync={displayName:c.displayName,namaSuami:c.namaSuami,namaIstri:c.namaIstri,namaAnak:c.namaAnak,email1:c.email1};
+    fetch(c.firebaseUrl+'/config.json',{method:'PATCH',body:JSON.stringify(cfToSync)}).catch(()=>{});
+  }
+  loadCfg();loadProfPhoto();logAction('settings','Perbarui profil');toast('✅ Profil disimpan & disinkron');
 }
 function saveGj(){
   const d=getD();
