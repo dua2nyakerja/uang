@@ -843,10 +843,17 @@ function showApp(){
 // AUTH
 function getCreds(){
   try{
-    const c=JSON.parse(localStorage.getItem('fk_creds'));
-    if(c&&c.u&&c.p)return c;
+    const raw=localStorage.getItem('fk_creds');
+    if(!raw)throw new Error('empty');
+    const c=JSON.parse(raw);
+    if(c&&c.u&&c.p){
+      // Kalau password masih encoded (btoa format), reset ke plain
+      if(c.p.endsWith('==')&&c.p.length>10){
+        try{const plain=atob(c.p.slice(0,-2));c.p=plain;localStorage.setItem('fk_creds',JSON.stringify(c));}catch{}
+      }
+      return c;
+    }
   }catch{}
-  // Default credentials - simpan ke localStorage
   const def={u:'barezafamily',p:'AdrianBareza22'};
   localStorage.setItem('fk_creds',JSON.stringify(def));
   return def;
@@ -856,16 +863,12 @@ function doLogin(e){
   const u=document.getElementById('aU').value.trim();
   const p=document.getElementById('aP').value;
   const cr=getCreds();
-  // Support plain text dan encoded password
-  let pMatch=false;
-  try{pMatch=(p===cr.p)||(btoa(p)+'=='===cr.p)||(p===atob(cr.p.replace(/={1,2}$/,'')));}catch{pMatch=(p===cr.p);}
-  const match=(u===cr.u)&&pMatch;
-  if(match){
+  if(u===cr.u && p===cr.p){
     sessionStorage.setItem('li','1');
     resetIdle();
     const pin=localStorage.getItem('fk_pin');
     if(pin){showPinLock();}else{showApp();}
-  }else{
+  } else {
     const el=document.getElementById('aerr');
     el.style.display='block';
     setTimeout(()=>el.style.display='none',3000);
@@ -876,11 +879,23 @@ function togglePw(){
   const i=document.getElementById('aP');
   const b=document.getElementById('pwe');
   if(!i||!b)return;
-  i.type=i.type==='password'?'text':'password';
-  b.innerHTML=i.type==='password'?'&#128065;':'&#128584;';
+  if(i.type==='password'){i.type='text';b.innerHTML='🙈';}
+  else{i.type='password';b.innerHTML='👁';}
 }
 function changeUsername(){const old=document.getElementById('unOld').value.trim(),nw=document.getElementById('unNew').value.trim();const cr=getCreds();if(old!==cr.u){toast('Username saat ini salah');return;}if(!nw||nw.length<3){toast('Min. 3 karakter');return;}localStorage.setItem('fk_creds',JSON.stringify({u:nw,p:cr.p}));['unOld','unNew'].forEach(id=>document.getElementById(id).value='');toast('✅ Username diganti');logAction('security','Ganti username');}
-function changePassword(){const old=document.getElementById('pwOld').value,nw=document.getElementById('pwNew').value,cf=document.getElementById('pwConf').value;const cr=getCreds();let oldOk=false;try{oldOk=(old===cr.p)||(btoa(old)+'=='===cr.p)||(old===atob(cr.p.replace(/={1,2}$/,'')));}catch{oldOk=(old===cr.p);}if(!oldOk){toast('Password saat ini salah');return;}if(nw.length<6){toast('Min. 6 karakter');return;}if(nw!==cf){toast('Konfirmasi tidak cocok');return;}localStorage.setItem('fk_creds',JSON.stringify({u:cr.u,p:nw}));['pwOld','pwNew','pwConf'].forEach(id=>document.getElementById(id).value='');toast('✅ Password diganti');logAction('security','Ganti password');}
+function changePassword(){
+  const old=document.getElementById('pwOld').value;
+  const nw=document.getElementById('pwNew').value;
+  const cf=document.getElementById('pwConf').value;
+  const cr=getCreds();
+  if(old!==cr.p){toast('Password saat ini salah');return;}
+  if(nw.length<6){toast('Min. 6 karakter');return;}
+  if(nw!==cf){toast('Konfirmasi tidak cocok');return;}
+  localStorage.setItem('fk_creds',JSON.stringify({u:cr.u,p:nw}));
+  ['pwOld','pwNew','pwConf'].forEach(id=>document.getElementById(id).value='');
+  toast('✅ Password diganti');
+  logAction('security','Ganti password');
+}
 
 // PIN
 let pinBuffer='';
