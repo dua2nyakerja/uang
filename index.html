@@ -459,7 +459,7 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
           <div id="dashStatusChip"></div>
         </div>
         <div class="g2 mb4">
-          <div class="fc"><div class="fcl">Hutang Aktif</div><div class="fca" id="dH">Rp 0</div></div>
+          <div class="fc"><div class="fcl">Hutang Aktif</div><div class="fca" id="dH">Rp 0</div><div style="font-size:10px;opacity:.5;margin-top:2px" id="dHSub">—</div></div>
           <div class="fc" style="cursor:pointer" onclick="go('cicilan')"><div class="fcl">Cicilan Bulan Ini</div><div class="fca" id="dCicTotal">Rp 0</div><div style="font-size:10px;opacity:.5;margin-top:2px" id="dCicCount">—</div></div>
         </div>
         <div class="hero">
@@ -510,7 +510,7 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
       <div class="vw" id="vw-income">
         <div class="card mb6">
           <div class="sh"><div class="st">Tambah Pemasukan</div></div>
-          <div class="fg"><label class="fl">Kategori</label><select class="fi" id="iC"><option value="">Pilih...</option><option value="salary-suami">Gaji Suami</option><option value="salary-istri">Gaji Istri</option><option value="fnb">Bisnis FnB</option><option value="extra">Penghasilan Tambahan</option></select></div>
+          <div class="fg"><label class="fl">Kategori</label><select class="fi" id="iC"><option value="">Pilih...</option><option value="salary-suami">Gaji Suami</option><option value="salary-istri">Gaji Istri</option><option value="fnb">Bisnis FnB</option><option value="extra">Penghasilan Tambahan</option><option value="pinjaman">Uang Pinjaman</option></select></div>
           <div class="fg"><label class="fl">Jumlah (Rp)</label><input type="text" class="fi" id="iA" placeholder="5.000.000" oninput="nf(this)"></div>
           <div class="fg"><label class="fl">Tanggal</label><div class="dp-wrap"><div class="dp-trigger" data-dp="iD" onclick="DP.open('iD',event)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="dp-val ph" id="dpval-iD">Pilih tanggal</span></div></div></div>
           <div class="fg"><label class="fl">Keterangan</label><textarea class="fi" id="iN" placeholder="opsional..."></textarea></div>
@@ -1313,7 +1313,7 @@ function openQuick(type){
   document.getElementById('qModalTitle').textContent=type==='exp'?'Pengeluaran Cepat':'Pemasukan Cepat';
   const qC=document.getElementById('qCat');
   if(type==='exp'){qC.innerHTML='<option value="">Pilih...</option>'+cats.map(c=>`<option>${c}</option>`).join('');}
-  else{qC.innerHTML='<option value="">Pilih...</option><option value="salary-suami">Gaji Suami</option><option value="salary-istri">Gaji Istri</option><option value="fnb">Bisnis FnB</option><option value="extra">Penghasilan Tambahan</option>';}
+  else{qC.innerHTML='<option value="">Pilih...</option><option value="salary-suami">Gaji Suami</option><option value="salary-istri">Gaji Istri</option><option value="fnb">Bisnis FnB</option><option value="extra">Penghasilan Tambahan</option><option value="pinjaman">Uang Pinjaman</option>';}
   document.getElementById('qAmt').value='';document.getElementById('qNote').value='';
   document.getElementById('qModal').classList.add('on');
 }
@@ -1356,8 +1356,25 @@ function renderDash(){
   const scEl=document.getElementById('dashStatusChip');
   if(scEl)scEl.innerHTML=`<div class="dsc ${st.cls}"><div class="dsc-dot"></div><span>${st.msg}</span></div>`;
 
-  // Hutang aktif
-  document.getElementById('dH').textContent=fmt(d.debts.filter(x=>x.type==='hutang'&&x.status!=='lunas').reduce((s,x)=>s+x.amount,0));
+  const hutangManual=d.debts.filter(x=>x.type==='hutang'&&x.status!=='lunas').reduce((s,x)=>s+x.amount,0);
+  const sisaCicilan=(d.cicilans||[]).reduce((s,c)=>{
+    const sisa=c.pays.filter(p=>!p.paid).reduce((ss,p)=>ss+p.total,0);
+    return s+sisa;
+  },0);
+  const totalHutang=hutangManual+sisaCicilan;
+  const dHEl=document.getElementById('dH');
+  if(dHEl)dHEl.textContent=fmt(totalHutang);
+  const dHSub=document.getElementById('dHSub');
+  if(dHSub){
+    if(hutangManual>0&&sisaCicilan>0)
+      dHSub.textContent=`Manual ${fmt(hutangManual)} + Cicilan ${fmt(sisaCicilan)}`;
+    else if(sisaCicilan>0)
+      dHSub.textContent=`Sisa cicilan ${fmt(sisaCicilan)}`;
+    else if(hutangManual>0)
+      dHSub.textContent=`Hutang manual`;
+    else
+      dHSub.textContent='Tidak ada hutang';
+  }
 
   // Cicilan bulan ini
   const now=new Date();
