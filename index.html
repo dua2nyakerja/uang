@@ -556,7 +556,7 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
             <div class="fg"><label class="fl">Total Pengembalian (Rp)</label><input type="text" class="fi" id="dtTR" placeholder="11.500.000" oninput="nf(this);dtprev()"></div>
             <div class="fg"><label class="fl">Durasi (Bulan)</label><input type="number" class="fi" id="dtDr" placeholder="12" min="1" oninput="dtprev()"></div>
             <div class="fg"><label class="fl">Jatuh Tempo Tanggal</label><input type="number" class="fi" id="dtDD2" placeholder="5" min="1" max="30" oninput="dtprev()"></div>
-            <div class="fg"><label class="fl">Tanggal Mulai</label><div class="dp-wrap"><div class="dp-trigger" data-dp="dtSt" onclick="DP.open('dtSt',event)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="dp-val ph" id="dpval-dtSt">Pilih tanggal mulai</span></div></div></div>
+            <div class="fg"><label class="fl">Tanggal Mulai Cicilan <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--accent)">— boleh tanggal lalu jika sudah berjalan</span></label><div class="dp-wrap"><div class="dp-trigger" data-dp="dtSt" onclick="DP.open('dtSt',event)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="dp-val ph" id="dpval-dtSt">Pilih tanggal mulai</span></div></div></div>
             <div id="dtpv" style="background:var(--alight);color:var(--accent);padding:12px 14px;border-radius:var(--rs);margin-bottom:12px;font-size:13px;font-weight:600;display:none;line-height:1.7"></div>
             <button class="btn bacc" onclick="addHutangCic()">Buat Hutang + Cicilan</button>
           </div>
@@ -576,7 +576,7 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
           <div class="fg"><label class="fl">Total Pengembalian (Rp)</label><input type="text" class="fi" id="cTR" placeholder="11.500.000" oninput="nf(this);cprev()"></div>
           <div class="fg"><label class="fl">Durasi (Bulan)</label><input type="number" class="fi" id="cDr" placeholder="12" min="1" oninput="cprev()"></div>
           <div class="fg"><label class="fl">Jatuh Tempo Tanggal</label><input type="number" class="fi" id="cDD" placeholder="5" min="1" max="30" oninput="cprev()"></div>
-          <div class="fg"><label class="fl">Tanggal Mulai</label><div class="dp-wrap"><div class="dp-trigger" data-dp="cSt" onclick="DP.open('cSt',event)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="dp-val ph" id="dpval-cSt">Pilih tanggal mulai</span></div></div></div>
+          <div class="fg"><label class="fl">Tanggal Mulai Cicilan <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--accent)">— boleh tanggal lalu jika sudah berjalan</span></label><div class="dp-wrap"><div class="dp-trigger" data-dp="cSt" onclick="DP.open('cSt',event)"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="dp-val ph" id="dpval-cSt">Pilih tanggal mulai</span></div></div></div>
           <div id="cpv" style="background:var(--alight);color:var(--accent);padding:12px 14px;border-radius:var(--rs);margin-bottom:12px;font-size:13px;font-weight:600;display:none;line-height:1.7"></div>
           <button class="btn bacc" onclick="addCic()">Buat Cicilan</button>
         </div>
@@ -1554,18 +1554,22 @@ function addHutangCic(){
   const st=DP.get('dtSt');
   if(!name||!pk||!tr||!dr||!st){toast('Isi semua field wajib');return;}
   const eff=pk-dp,perBulan=Math.round(tr/dr),bungaPerBulan=Math.round((tr-eff)/dr),pokokPerBulan=Math.round(eff/dr);
+  const today=new Date();today.setHours(0,0,0,0);
   const pays=[];
   for(let i=0;i<dr;i++){
     const date=new Date(st+'T00:00:00');date.setMonth(date.getMonth()+i);date.setDate(dd);
-    pays.push({m:i+1,due:date.toISOString().split('T')[0],prin:(i<dr-1)?pokokPerBulan:(eff-(pokokPerBulan*(dr-1))),int:bungaPerBulan,total:perBulan,paid:false});
+    const alreadyPast=date<today;
+    pays.push({m:i+1,due:date.toISOString().split('T')[0],prin:(i<dr-1)?pokokPerBulan:(eff-(pokokPerBulan*(dr-1))),int:bungaPerBulan,total:perBulan,paid:alreadyPast});
   }
+  const autoPaid=pays.filter(p=>p.paid).length;
   const d=getD();
   d.debts.push({id:Date.now(),type:'hutang',name,amount:pk,date:st,status:'aktif',hasCicilan:true});
   d.cicilans.push({id:Date.now()+1,name,pk,dp,tr,dr,dd,st,pays,ca:td(),fromDebt:true});
   setD(d);logAction('debt',`Hutang+Cicilan: ${name}`,pk);
   ['dtN','dtPk','dtDP','dtTR','dtDr','dtDD2'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('dtpv').style.display='none';DP.set('dtSt',td());
-  toast('✅ Hutang + cicilan dibuat');renderDebt();renderCic();renderDash();
+  toast(`✅ Hutang + cicilan dibuat${autoPaid>0?` · ${autoPaid} bulan lalu otomatis lunas`:''}`);
+  renderDebt();renderCic();renderDash();
 }
 function addDebt(){
   const type=document.getElementById('dtT').value,name=document.getElementById('dtN').value.trim();
@@ -1619,16 +1623,22 @@ function addCic(){
   const st=DP.get('cSt');
   if(!name||!pk||!tr||!dr||!st){toast('Isi semua field wajib');return;}
   const eff=pk-dp,perBulan=Math.round(tr/dr),bungaPerBulan=Math.round((tr-eff)/dr),pokokPerBulan=Math.round(eff/dr);
+  const today=new Date();today.setHours(0,0,0,0);
   const pays=[];
   for(let i=0;i<dr;i++){
     const date=new Date(st+'T00:00:00');date.setMonth(date.getMonth()+i);date.setDate(dd);
-    pays.push({m:i+1,due:date.toISOString().split('T')[0],prin:(i<dr-1)?pokokPerBulan:(eff-(pokokPerBulan*(dr-1))),int:bungaPerBulan,total:perBulan,paid:false});
+    const dueStr=date.toISOString().split('T')[0];
+    const alreadyPast=date<today; // otomatis lunas kalau sudah lewat
+    pays.push({m:i+1,due:dueStr,prin:(i<dr-1)?pokokPerBulan:(eff-(pokokPerBulan*(dr-1))),int:bungaPerBulan,total:perBulan,paid:alreadyPast});
   }
+  const autoPaid=pays.filter(p=>p.paid).length;
   const d=getD();d.cicilans.push({id:Date.now(),name,pk,dp,tr,dr,dd,st,pays,ca:td()});setD(d);
   logAction('cicilan',`Cicilan: ${name}`,pk);
   ['cNm','cPk','cDP','cTR','cDr','cDD'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('cpv').style.display='none';document.getElementById('cDPinfo').style.display='none';
-  DP.set('cSt',td());toast('✅ Cicilan dibuat');renderCic();
+  DP.set('cSt',td());
+  toast(`✅ Cicilan dibuat${autoPaid>0?` · ${autoPaid} bulan lalu otomatis ditandai lunas`:''}`);
+  renderCic();
 }
 function togPay(cid,pi){
   const d=getD();const c=d.cicilans.find(x=>x.id===cid);
