@@ -319,6 +319,13 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
 .ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:90}
 #searchPanel{display:none;position:fixed;bottom:80px;right:24px;z-index:190;background:var(--surface);border-radius:var(--r);box-shadow:var(--sh3);width:340px;max-height:60vh;overflow-y:auto;border:1px solid var(--borderl);padding:14px}
 #searchOverlay{display:none;position:fixed;inset:0;z-index:180;background:rgba(0,0,0,.3)}
+/* Compact transaction list hover */
+.txi:hover{background:var(--sf2)}
+/* Hapus button hover state via CSS */
+.tx-del-btn:hover{background:#fef2f2!important;color:#dc2626!important;border-color:#fecaca!important}
+/* Amount display */
+.tx-amount-exp{font-size:15px;font-weight:800;color:#dc2626;letter-spacing:-.3px}
+.tx-amount-inc{font-size:15px;font-weight:800;color:#059669;letter-spacing:-.3px}
 @media(max-width:768px){
   :root{--sb:0px}
   .sb{transform:translateX(-100%);z-index:200;width:260px}
@@ -474,7 +481,7 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
         <div class="hero">
           <div style="display:flex;justify-content:space-between;align-items:flex-start">
             <div class="hero-lbl">Saldo Bersih Periode Ini</div>
-            <button onclick="openEditSaldo()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:4px 10px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">✏️ Edit</button>
+            <button type="button" onclick="openEditSaldo()" style="background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);border-radius:8px;padding:5px 12px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;-webkit-tap-highlight-color:transparent">✏️ Edit Saldo</button>
           </div>
           <div class="hero-amt" id="hAmt">Rp 0</div>
           <div class="hero-sub" id="hPeriod">Semua waktu</div>
@@ -1677,33 +1684,56 @@ function renderInc(){
   const items=getD().income.filter(i=>inR(i.date)).reverse();
   const sel=selMode.inc;
   const el=document.getElementById('iList');if(!el)return;
-  if(!items.length){el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg><p>Tidak ada pemasukan</p></div>`;return;}
+  if(!items.length){
+    el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg><p>Tidak ada pemasukan</p></div>`;
+    return;
+  }
   const groups={};
-  items.forEach(i=>{const key=i.date?i.date.slice(0,7):'x';if(!groups[key])groups[key]=[];groups[key].push(i);});
+  items.forEach(i=>{
+    const key=i.date?i.date.slice(0,7):'x';
+    if(!groups[key])groups[key]=[];
+    groups[key].push(i);
+  });
   const catLabel={'salary-suami':'Gaji Suami','salary-istri':'Gaji Istri','fnb':'Bisnis FnB','extra':'Penghasilan Tambahan','pinjaman':'Uang Pinjaman'};
   const catIcon={'salary-suami':'💼','salary-istri':'👩‍💼','fnb':'🍽️','extra':'⭐','pinjaman':'🏦'};
   let html=`<div class="${sel?'select-mode':''}">`;
   Object.entries(groups).forEach(([month,its])=>{
-    const [y,m]=month.split('-');
+    const[y,m]=month.split('-');
     const label=m&&y?MONTHS_ID[parseInt(m)-1]+' '+y:'Lainnya';
     const total=its.reduce((s,i)=>s+i.amount,0);
-    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:14px 0 8px;display:flex;justify-content:space-between"><span>${label}</span><span style="color:#059669">${fmt(total)}</span></div>`;
-    html+=`<div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:12px">`;
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 4px 8px">
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--t3)">${label}</span>
+      <span style="font-size:12px;font-weight:700;color:#059669">+${fmt(total)}</span>
+    </div>`;
+    html+=`<div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:6px">`;
     its.forEach((i,idx)=>{
       const checked=selSet.inc.has(i.id);
       const cl=catLabel[i.category]||i.category;
       const ic=catIcon[i.category]||'💰';
-      html+=`<div class="txi ${checked?'sel':''}" id="row-inc-${i.id}" style="padding:14px 16px;border-bottom:${idx<its.length-1?'1px solid var(--borderl)':'none'};display:flex;align-items:center;gap:0">
-        ${sel?`<input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('inc',${i.id})" style="margin-right:10px">`:''}
-        <div style="width:40px;height:40px;border-radius:12px;background:#eaf5f0;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${ic}</div>
-        <div style="flex:1;min-width:0;margin-left:12px">
-          <div style="font-size:14px;font-weight:700;letter-spacing:-.2px">${cl}</div>
-          ${i.notes?`<div style="font-size:12px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.notes}</div>`:''}
-          <div style="font-size:11.5px;color:var(--t3);margin-top:2px">${fmtD(i.date)}</div>
+      const isLast=idx===its.length-1;
+      html+=`<div class="txi${checked?' sel':''}" id="row-inc-${i.id}"
+        style="padding:12px 14px;border-bottom:${isLast?'none':'1px solid var(--borderl)'};display:flex;align-items:center;gap:12px">
+        ${sel?`<input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('inc',${i.id})" style="flex-shrink:0">`:''}
+        <div style="width:38px;height:38px;border-radius:11px;background:#eaf5f0;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${ic}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13.5px;font-weight:700;letter-spacing:-.15px">${cl}</div>
+          ${i.notes?`<div style="font-size:11.5px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.notes}</div>`:''}
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">${fmtDs(i.date)}</div>
         </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:12px">
-          <div style="font-size:15px;font-weight:800;color:#059669">+${fmt(i.amount)}</div>
-          ${sel?'':`<div style="display:flex;gap:4px;margin-top:6px;justify-content:flex-end"><button onclick="openEditInc(${i.id})" style="background:var(--sf2);border:1px solid var(--borderl);border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--t2)">✏️</button><button onclick="delInc(${i.id})" style="background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:#dc2626">✕</button></div>`}
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div style="font-size:15px;font-weight:800;color:#059669;letter-spacing:-.3px">+${fmt(i.amount).replace('Rp ','')}</div>
+          ${sel?'':`<div style="display:flex;gap:4px">
+            <button type="button" onclick="openEditInc(${i.id})"
+              style="width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--t3);font-size:12px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button type="button" onclick="delInc(${i.id})"
+              style="width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--t3);font-size:13px"
+              onmouseover="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'"
+              onmouseout="this.style.background='var(--sf2)';this.style.color='var(--t3)';this.style.borderColor='var(--borderl)'">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>
+          </div>`}
         </div>
       </div>`;
     });
@@ -1737,29 +1767,63 @@ function renderExp(){
   const items=getD().expenses.filter(e=>inR(e.date)).reverse();
   const sel=selMode.exp;
   const el=document.getElementById('eList');if(!el)return;
-  if(!items.length){el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg><p>Tidak ada pengeluaran</p></div>`;return;}
+  if(!items.length){
+    el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg><p>Tidak ada pengeluaran</p></div>`;
+    return;
+  }
+  // Kelompokkan per bulan
   const groups={};
-  items.forEach(e=>{const key=e.date?e.date.slice(0,7):'x';if(!groups[key])groups[key]=[];groups[key].push(e);});
+  items.forEach(e=>{
+    const key=e.date?e.date.slice(0,7):'x';
+    if(!groups[key])groups[key]=[];
+    groups[key].push(e);
+  });
+  // Icon per kategori
+  const catIconMap={
+    'Makanan & Minuman':'🍽️','Transportasi':'🚗','Listrik & Air':'💡',
+    'Internet & Telepon':'📱','Belanja Barang':'🛍️','Pendidikan':'📚',
+    'Kesehatan':'💊','Hiburan':'🎬','Transfer':'🏦','Lainnya':'💸'
+  };
+  function getCatIcon(cat){
+    for(const[k,v] of Object.entries(catIconMap)){if(cat&&cat.toLowerCase().includes(k.toLowerCase()))return v;}
+    return '💸';
+  }
   let html=`<div class="${sel?'select-mode':''}">`;
   Object.entries(groups).forEach(([month,its])=>{
-    const [y,m]=month.split('-');
+    const[y,m]=month.split('-');
     const label=m&&y?MONTHS_ID[parseInt(m)-1]+' '+y:'Lainnya';
     const total=its.reduce((s,e)=>s+e.amount,0);
-    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:14px 0 8px;display:flex;justify-content:space-between"><span>${label}</span><span style="color:#dc2626">${fmt(total)}</span></div>`;
-    html+=`<div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:12px">`;
+    // Section header
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 4px 8px">
+      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--t3)">${label}</span>
+      <span style="font-size:12px;font-weight:700;color:#dc2626">-${fmt(total)}</span>
+    </div>`;
+    // Card grup
+    html+=`<div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:6px">`;
     its.forEach((e,idx)=>{
       const checked=selSet.exp.has(e.id);
-      html+=`<div class="txi ${checked?'sel':''}" id="row-exp-${e.id}" style="padding:14px 16px;border-bottom:${idx<its.length-1?'1px solid var(--borderl)':'none'};display:flex;align-items:center;gap:0">
-        ${sel?`<input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('exp',${e.id})" style="margin-right:10px">`:''}
-        <div style="width:40px;height:40px;border-radius:12px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💸</div>
-        <div style="flex:1;min-width:0;margin-left:12px">
-          <div style="font-size:14px;font-weight:700;letter-spacing:-.2px">${e.category}</div>
-          ${e.notes?`<div style="font-size:12px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.notes}</div>`:''}
-          <div style="font-size:11.5px;color:var(--t3);margin-top:2px">${fmtD(e.date)}</div>
+      const icon=getCatIcon(e.category);
+      const isLast=idx===its.length-1;
+      html+=`<div class="txi${checked?' sel':''}" id="row-exp-${e.id}"
+        style="padding:12px 14px;border-bottom:${isLast?'none':'1px solid var(--borderl)'};display:flex;align-items:center;gap:12px;position:relative">
+        ${sel?`<input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('exp',${e.id})" style="flex-shrink:0">`:''}
+        <!-- Icon -->
+        <div style="width:38px;height:38px;border-radius:11px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${icon}</div>
+        <!-- Info -->
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13.5px;font-weight:700;letter-spacing:-.15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.category}</div>
+          ${e.notes?`<div style="font-size:11.5px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.notes}</div>`:''}
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">${fmtDs(e.date)}</div>
         </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:12px">
-          <div style="font-size:15px;font-weight:800;color:#dc2626">-${fmt(e.amount)}</div>
-          ${sel?'':`<div style="display:flex;gap:4px;margin-top:6px;justify-content:flex-end"><button onclick="delExp(${e.id})" style="background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:#dc2626">✕</button></div>`}
+        <!-- Amount + action -->
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div style="font-size:15px;font-weight:800;color:#dc2626;letter-spacing:-.3px">-${fmt(e.amount).replace('Rp ','')}</div>
+          ${sel?'':`<button type="button" onclick="delExp(${e.id})"
+            style="width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--t3);font-size:13px;transition:all .15s"
+            onmouseover="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'"
+            onmouseout="this.style.background='var(--sf2)';this.style.color='var(--t3)';this.style.borderColor='var(--borderl)'">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>`}
         </div>
       </div>`;
     });
