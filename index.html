@@ -460,20 +460,32 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
           <div id="dashStatusChip"></div>
         </div>
         <div class="g2 mb4">
-          <div class="fc"><div class="fcl">Hutang Aktif</div><div class="fca" id="dH">Rp 0</div><div style="font-size:10px;opacity:.5;margin-top:2px" id="dHSub">—</div></div>
-          <div class="fc" style="cursor:pointer" onclick="go('cicilan')"><div class="fcl">Cicilan Bulan Ini</div><div class="fca" id="dCicTotal">Rp 0</div><div style="font-size:10px;opacity:.5;margin-top:2px" id="dCicCount">—</div></div>
+          <div class="fc" onclick="go('debt')" style="cursor:pointer">
+            <div class="fcl">Hutang Aktif</div>
+            <div class="fca" id="dH">Rp 0</div>
+            <div style="font-size:10px;opacity:.5;margin-top:2px" id="dHSub">—</div>
+          </div>
+          <div class="fc" onclick="go('savings')" style="cursor:pointer">
+            <div class="fcl">Total Tabungan</div>
+            <div class="fca" id="dSvTotal">Rp 0</div>
+            <div style="font-size:10px;opacity:.5;margin-top:2px" id="dSvSub">—</div>
+          </div>
         </div>
         <div class="hero">
-          <div class="hero-lbl">Saldo Bersih Periode Ini</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div class="hero-lbl">Saldo Bersih Periode Ini</div>
+            <button onclick="openEditSaldo()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;padding:4px 10px;color:#fff;font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0">✏️ Edit</button>
+          </div>
           <div class="hero-amt" id="hAmt">Rp 0</div>
           <div class="hero-sub" id="hPeriod">Semua waktu</div>
           <div class="hero-stats">
             <div><div class="hsl">Pemasukan</div><div class="hsv inc" id="hInc">Rp 0</div></div>
             <div><div class="hsl">Pengeluaran</div><div class="hsv exp" id="hExp">Rp 0</div></div>
+            <div><div class="hsl">Cicilan Bulan Ini</div><div class="hsv" id="dCicTotal" style="color:#86efac">Rp 0</div></div>
           </div>
         </div>
         <div class="card mb6">
-          <div class="sh"><div class="st">Tren 6 Bulan</div></div>
+          <div class="sh"><div class="st">Tren Keuangan</div><div style="display:flex;gap:4px"><button class="btn bxs bghost trend-btn" data-p="1" onclick="setTrendPeriod(1)" style="font-size:11px;padding:4px 8px">Bln</button><button class="btn bxs bghost trend-btn" data-p="3" onclick="setTrendPeriod(3)" style="font-size:11px;padding:4px 8px">3 Bln</button><button class="btn bxs bghost trend-btn active" data-p="6" onclick="setTrendPeriod(6)" style="font-size:11px;padding:4px 8px;background:var(--accent);color:#fff;border-color:var(--accent)">6 Bln</button><button class="btn bxs bghost trend-btn" data-p="12" onclick="setTrendPeriod(12)" style="font-size:11px;padding:4px 8px">Thn</button></div></div>
           <div class="chart-wrap"><svg class="chart-svg" id="trendChart" height="140"></svg></div>
           <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;font-weight:600">
             <span style="color:#059669">&#9679; Pemasukan</span>
@@ -795,6 +807,19 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
 <div id="searchOverlay" onclick="closeSearch()"></div>
 <div id="searchPanel"></div>
 <div class="tw" id="tw"></div>
+<!-- EDIT SALDO MODAL -->
+<div class="modal-bg" id="editSaldoModal" onclick="if(event.target===this)closeEditSaldo()">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title">Edit Saldo Awal</div>
+      <button class="modal-close" onclick="closeEditSaldo()">&#10005;</button>
+    </div>
+    <p style="font-size:13px;color:var(--t2);margin-bottom:16px">Saldo awal dipakai sebagai basis perhitungan saldo bersih. Berguna jika kamu punya saldo sebelum pakai FinKel.</p>
+    <div class="fg"><label class="fl">Saldo Awal (Rp)</label><input type="text" class="fi" id="editSaldoAmt" placeholder="0" oninput="nf(this)"></div>
+    <button class="btn bacc bfull" onclick="saveEditSaldo()">Simpan</button>
+  </div>
+</div>
+
 <!-- EDIT INCOME MODAL -->
 <div class="modal-bg" id="editIncModal" onclick="closeEditInc(event)">
   <div class="modal">
@@ -1287,18 +1312,39 @@ function delBudget(cat){const d=getD();if(d.budgets)delete d.budgets[cat];setD(d
 function renderTrendChart(){
   const svg=document.getElementById('trendChart');if(!svg)return;
   const d=getD();const now=new Date();
-  const months=[];
-  for(let i=5;i>=0;i--){const dt=new Date(now.getFullYear(),now.getMonth()-i,1);months.push({y:dt.getFullYear(),m:dt.getMonth(),label:MONTHS_ID[dt.getMonth()].slice(0,3)});}
-  const incData=months.map(({y,m})=>d.income.filter(i=>{const dt=new Date(i.date+'T00:00:00');return dt.getFullYear()===y&&dt.getMonth()===m;}).reduce((s,i)=>s+i.amount,0)+(m===now.getMonth()&&y===now.getFullYear()?(d.sal.s||0)+(d.sal.i||0):0));
-  const expData=months.map(({y,m})=>d.expenses.filter(e=>{const dt=new Date(e.date+'T00:00:00');return dt.getFullYear()===y&&dt.getMonth()===m;}).reduce((s,e)=>s+e.amount,0));
+  const n=trendPeriod||6;
+  const periods=[];
+  if(n===1){
+    for(let w=3;w>=0;w--){
+      const start=new Date(now.getFullYear(),now.getMonth(),now.getDate()-w*7-6);
+      const end=new Date(now.getFullYear(),now.getMonth(),now.getDate()-w*7);
+      periods.push({label:'M'+(4-w),start,end});
+    }
+  } else {
+    for(let i=n-1;i>=0;i--){
+      const dt=new Date(now.getFullYear(),now.getMonth()-i,1);
+      periods.push({label:MONTHS_ID[dt.getMonth()].slice(0,3),y:dt.getFullYear(),m:dt.getMonth()});
+    }
+  }
+  const incData=periods.map(p=>{
+    if(p.start)return d.income.filter(i=>{const dt=new Date(i.date+'T00:00:00');return dt>=p.start&&dt<=p.end;}).reduce((s,i)=>s+i.amount,0);
+    const sal=p.m===now.getMonth()&&p.y===now.getFullYear()?(d.sal.s||0)+(d.sal.i||0):0;
+    return d.income.filter(i=>{const dt=new Date(i.date+'T00:00:00');return dt.getFullYear()===p.y&&dt.getMonth()===p.m;}).reduce((s,i)=>s+i.amount,0)+sal;
+  });
+  const expData=periods.map(p=>{
+    if(p.start)return d.expenses.filter(e=>{const dt=new Date(e.date+'T00:00:00');return dt>=p.start&&dt<=p.end;}).reduce((s,e)=>s+e.amount,0);
+    return d.expenses.filter(e=>{const dt=new Date(e.date+'T00:00:00');return dt.getFullYear()===p.y&&dt.getMonth()===p.m;}).reduce((s,e)=>s+e.amount,0);
+  });
   const maxV=Math.max(...incData,...expData,1);
-  const W=svg.getBoundingClientRect().width||400,H=140,pl=8,pr=8,pt=16,pb=24;
-  const cW=W-pl-pr,cH=H-pt-pb;const xStep=cW/(months.length-1);
+  const W=svg.getBoundingClientRect().width||380,H=140,pl=8,pr=8,pt=16,pb=24;
+  const cW=W-pl-pr,cH=H-pt-pb;
+  const xStep=periods.length>1?cW/(periods.length-1):cW;
   const pts=(arr)=>arr.map((v,i)=>`${pl+i*xStep},${pt+cH-(v/maxV)*cH}`).join(' ');
-  const ptf=(arr)=>`${pl},${pt+cH} ${arr.map((v,i)=>`${pl+i*xStep},${pt+cH-(v/maxV)*cH}`).join(' ')} ${pl+(months.length-1)*xStep},${pt+cH}`;
+  const ptf=(arr)=>`${pl},${pt+cH} ${arr.map((v,i)=>`${pl+i*xStep},${pt+cH-(v/maxV)*cH}`).join(' ')} ${pl+(periods.length-1)*xStep},${pt+cH}`;
   svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
-  svg.innerHTML=`<defs><linearGradient id="gI" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#059669" stop-opacity=".2"/><stop offset="100%" stop-color="#059669" stop-opacity="0"/></linearGradient><linearGradient id="gE" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#dc2626" stop-opacity=".15"/><stop offset="100%" stop-color="#dc2626" stop-opacity="0"/></linearGradient></defs><polygon points="${ptf(incData)}" fill="url(#gI)"/><polygon points="${ptf(expData)}" fill="url(#gE)"/><polyline points="${pts(incData)}" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${pts(expData)}" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${incData.map((v,i)=>`<circle cx="${pl+i*xStep}" cy="${pt+cH-(v/maxV)*cH}" r="3" fill="#059669"/>`).join('')}${expData.map((v,i)=>`<circle cx="${pl+i*xStep}" cy="${pt+cH-(v/maxV)*cH}" r="3" fill="#dc2626"/>`).join('')}${months.map(({label},i)=>`<text x="${pl+i*xStep}" y="${H-4}" text-anchor="middle" font-size="9" fill="var(--t3)" font-family="Outfit,sans-serif">${label}</text>`).join('')}`;
+  svg.innerHTML=`<defs><linearGradient id="gI" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#059669" stop-opacity=".2"/><stop offset="100%" stop-color="#059669" stop-opacity="0"/></linearGradient><linearGradient id="gE" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#dc2626" stop-opacity=".15"/><stop offset="100%" stop-color="#dc2626" stop-opacity="0"/></linearGradient></defs><polygon points="${ptf(incData)}" fill="url(#gI)"/><polygon points="${ptf(expData)}" fill="url(#gE)"/><polyline points="${pts(incData)}" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="${pts(expData)}" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>${incData.map((v,i)=>`<circle cx="${pl+i*xStep}" cy="${pt+cH-(v/maxV)*cH}" r="3" fill="#059669"/>`).join('')}${expData.map((v,i)=>`<circle cx="${pl+i*xStep}" cy="${pt+cH-(v/maxV)*cH}" r="3" fill="#dc2626"/>`).join('')}${periods.map(({label},i)=>`<text x="${pl+i*xStep}" y="${H-4}" text-anchor="middle" font-size="9" fill="var(--t3)" font-family="Outfit,sans-serif">${label}</text>`).join('')}`;
 }
+
 
 // ── VIEW ROUTING ──
 const VSUB={dashboard:'Ringkasan Keuangan',income:'Pemasukan',expenses:'Pengeluaran',debt:'Hutang & Piutang',cicilan:'Cicilan',savings:'Tabungan',budget:'Budget per Kategori',reminders:'Pengingat & Recurring',calendar:'Kalender',report:'Laporan',settings:'Pengaturan',telegram:'Telegram & Firebase'};
@@ -1385,31 +1431,142 @@ function submitQuick(){
 
 // ── STATUS ──
 function getStatus(){
-  const d=getD(),inc=d.income.filter(i=>inR(i.date)),exp=d.expenses.filter(e=>inR(e.date));
-  const ti=inc.reduce((s,i)=>s+i.amount,0)+(d.sal.s||0)+(d.sal.i||0);
-  const te=exp.reduce((s,e)=>s+e.amount,0);
-  if(!ti&&!te)return{cls:'dsc-warn',msg:'Belum ada data'};
-  if(te>ti)return{cls:'dsc-dng',msg:'Pengeluaran melebihi pemasukan!'};
-  const sv=d.savings||[];
-  const miss=[];
-  const dev=sv.find(s=>s.name.toLowerCase().includes('pengembangan'))?.current||0;
-  const mirza=sv.find(s=>s.name.toLowerCase().includes('mirza'))?.current||0;
-  const rona=sv.find(s=>s.name.toLowerCase().includes('rona'))?.current||0;
-  if(dev<TH.dev)miss.push('Tab. Pengembangan');
-  if(mirza<TH.mirza)miss.push('Tab. Mirza');
-  if(rona<TH.rona)miss.push('Tab. Rona');
-  if(miss.length)return{cls:'dsc-warn',msg:`${miss[0]} belum tercapai`};
-  return{cls:'dsc-safe',msg:'Keuangan aman ✓'};
+  const d=getD();
+  const now=new Date();
+  const mStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  // Hitung khusus bulan ini
+  const incBulan=d.income.filter(i=>i.date&&i.date.startsWith(mStr)).reduce((s,i)=>s+i.amount,0)+(d.sal.s||0)+(d.sal.i||0);
+  const expBulan=d.expenses.filter(e=>e.date&&e.date.startsWith(mStr)).reduce((s,e)=>s+e.amount,0);
+  if(!incBulan&&!expBulan)return{cls:'dsc-warn',msg:'Belum ada data bulan ini'};
+  if(!incBulan)return{cls:'dsc-dng',msg:'Tidak ada pemasukan bulan ini!'};
+  const ratio=expBulan/incBulan;
+  if(ratio>1)return{cls:'dsc-dng',msg:`Bahaya! Pengeluaran ${Math.round(ratio*100)}% dari pemasukan`};
+  if(ratio>=0.8)return{cls:'dsc-warn',msg:`Hati-hati! ${Math.round(ratio*100)}% pemasukan terpakai`};
+  return{cls:'dsc-safe',msg:`Aman · ${Math.round(ratio*100)}% pemasukan terpakai`};
 }
 
 // ── DASHBOARD ──
+let trendPeriod=6;
+function setTrendPeriod(p){
+  trendPeriod=p;
+  document.querySelectorAll('.trend-btn').forEach(b=>{
+    const active=parseInt(b.dataset.p)===p;
+    b.style.background=active?'var(--accent)':'';
+    b.style.color=active?'#fff':'';
+    b.style.borderColor=active?'var(--accent)':'';
+  });
+  renderTrendChart();
+}
+
+function openEditSaldo(){
+  const c=getC();
+  const el=document.getElementById('editSaldoAmt');
+  if(el)el.value=c.saldoAwal?c.saldoAwal.toLocaleString('id-ID').replace(/,/g,'.'):'';
+  document.getElementById('editSaldoModal').classList.add('on');
+}
+function closeEditSaldo(){document.getElementById('editSaldoModal').classList.remove('on');}
+function saveEditSaldo(){
+  const amt=uf(document.getElementById('editSaldoAmt').value)||0;
+  const c=getC();c.saldoAwal=amt;setC(c);
+  closeEditSaldo();toast('✅ Saldo awal disimpan');renderDash();
+}
+
 function renderDash(){
-  const d=getD(),inc=d.income.filter(i=>inR(i.date)),exp=d.expenses.filter(e=>inR(e.date));
+  const d=getD(),c=getC();
+  const inc=d.income.filter(i=>inR(i.date)),exp=d.expenses.filter(e=>inR(e.date));
   const ti=inc.reduce((s,i)=>s+i.amount,0)+(d.sal.s||0)+(d.sal.i||0);
   const te=exp.reduce((s,e)=>s+e.amount,0);
+  const saldoAwal=c.saldoAwal||0;
+
+  // Status chip
   const st=getStatus();
   const scEl=document.getElementById('dashStatusChip');
   if(scEl)scEl.innerHTML=`<div class="dsc ${st.cls}"><div class="dsc-dot"></div><span>${st.msg}</span></div>`;
+
+  // Hutang aktif = hutang manual saja (tidak duplikat cicilan)
+  const hutangManual=d.debts.filter(x=>x.type==='hutang'&&x.status!=='lunas').reduce((s,x)=>s+x.amount,0);
+  const sisaCicilan=(d.cicilans||[]).reduce((s,c)=>s+(c.pays||[]).filter(p=>!p.paid).reduce((ss,p)=>ss+p.total,0),0);
+  const dHEl=document.getElementById('dH');
+  const dHSub=document.getElementById('dHSub');
+  if(dHEl)dHEl.textContent=fmt(hutangManual+sisaCicilan);
+  if(dHSub){
+    if(hutangManual>0&&sisaCicilan>0)dHSub.textContent='Manual+Cicilan';
+    else if(sisaCicilan>0)dHSub.textContent='Sisa cicilan';
+    else if(hutangManual>0)dHSub.textContent='Hutang manual';
+    else dHSub.textContent='Tidak ada hutang';
+  }
+
+  // Total tabungan
+  const svTotal=(d.savings||[]).reduce((s,x)=>s+x.current,0);
+  const svEl=document.getElementById('dSvTotal');
+  const svSub=document.getElementById('dSvSub');
+  if(svEl)svEl.textContent=fmt(svTotal);
+  if(svSub)svSub.textContent=(d.savings||[]).length+(d.savings||[]).length===1?' tabungan':' tabungan aktif';
+
+  // Hero card
+  const saldoBersih=saldoAwal+ti-te;
+  const hAmtEl=document.getElementById('hAmt');
+  if(hAmtEl)hAmtEl.textContent=fmt(saldoBersih);
+  const hIncEl=document.getElementById('hInc');if(hIncEl)hIncEl.textContent=fmt(ti);
+  const hExpEl=document.getElementById('hExp');if(hExpEl)hExpEl.textContent=fmt(te);
+
+  // Cicilan bulan ini di hero
+  const now=new Date();
+  const thisMonth=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+  const cicBulanIni=(d.cicilans||[]).reduce((s,c)=>s+(c.pays||[]).filter(p=>!p.paid&&p.due&&p.due.startsWith(thisMonth)).reduce((ss,p)=>ss+p.total,0),0);
+  const cicTotalEl=document.getElementById('dCicTotal');
+  if(cicTotalEl)cicTotalEl.textContent=fmt(cicBulanIni);
+
+  // Gaji cards
+  const sGSel=document.getElementById('sGS');if(sGSel)sGSel.textContent=fmt(d.sal.s||0);
+  const sGIel=document.getElementById('sGI');if(sGIel)sGIel.textContent=fmt(d.sal.i||0);
+  const sBiel=document.getElementById('sBi');if(sBiel)sBiel.textContent=fmt(inc.filter(i=>i.category==='fnb').reduce((s,i)=>s+i.amount,0));
+  const sExel=document.getElementById('sEx');if(sExel)sExel.textContent=fmt(inc.filter(i=>i.category==='extra').reduce((s,i)=>s+i.amount,0));
+
+  // Recent lists
+  const emp=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg><p>Belum ada data</p></div>`;
+  const dILel=document.getElementById('dIL');if(dILel)dILel.innerHTML=[...inc].reverse().slice(0,5).map(i=>txH(i,'inc')).join('')||emp;
+  const dELel=document.getElementById('dEL');if(dELel)dELel.innerHTML=[...exp].reverse().slice(0,5).map(e=>txH(e,'exp')).join('')||emp;
+
+  // Cicilan list di dashboard
+  const cicListEl=document.getElementById('dCicList');
+  if(cicListEl){
+    const cicArr=[];
+    (d.cicilans||[]).forEach(c=>{
+      (c.pays||[]).forEach(p=>{
+        if(!p.paid&&p.due&&p.due.startsWith(thisMonth))
+          cicArr.push({name:c.name,debitur:c.debitur||'',due:p.due,total:p.total});
+      });
+    });
+    if(!cicArr.length){
+      cicListEl.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>Tidak ada cicilan jatuh tempo bulan ini</p></div>`;
+    } else {
+      cicListEl.innerHTML=cicArr.map(x=>{
+        const diff=Math.ceil((new Date(x.due+'T00:00:00')-now)/(1000*60*60*24));
+        const urgCls=diff<=0?'bdn':diff<=5?'bwn':'bok';
+        const urgLbl=diff===0?'Hari ini':diff<0?Math.abs(diff)+'h lalu':diff===1?'Besok':diff+'h lagi';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--borderl)"><div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:700">${x.name}</div>${x.debitur?`<div style="font-size:11.5px;color:var(--t3)">${x.debitur}</div>`:''}<div style="font-size:11.5px;color:var(--t3);margin-top:1px">${fmtDs(x.due)}</div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:16px;font-weight:800;color:var(--accent)">${fmt(x.total)}</div><span class="bdg ${urgCls}" style="font-size:10px">${urgLbl}</span></div></div>`;
+      }).join('');
+    }
+  }
+
+  // Budget preview
+  const budgets=d.budgets||{};const spent=getMonthExp();const bKeys=Object.keys(budgets).slice(0,4);
+  const dBudgetEl=document.getElementById('dBudget');
+  if(dBudgetEl)dBudgetEl.innerHTML=bKeys.length?bKeys.map(cat=>{
+    const s=spent[cat]||0,limit=budgets[cat],pct=Math.min(100,Math.round(s/limit*100));
+    const cls=pct>=100?'budget-over':pct>=80?'budget-warn':'budget-ok';
+    const pbCls=pct>=100?'pb-over':pct>=80?'pb-warn':'';
+    return `<div class="budget-row"><div class="budget-info"><div class="budget-name">${cat}</div><div class="budget-nums">${fmt(s)} / ${fmt(limit)}</div><div class="pb"><div class="pf ${pbCls}" style="width:${pct}%"></div></div></div><span class="budget-pct ${cls}">${pct}%</span></div>`;
+  }).join(''):`<div style="font-size:13px;color:var(--t3);padding:8px 0">Belum ada budget. Klik <strong>Set Budget</strong> →</div>`;
+
+  // Tabungan
+  const sv=d.savings||[];
+  const dSVel=document.getElementById('dSV');
+  if(dSVel)dSVel.innerHTML=sv.length?sv.map(s=>`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:13.5px;font-weight:600">${s.name}</span><span style="font-size:12px;color:var(--t3)">${fmt(s.current)} / ${fmt(s.target)}</span></div><div class="pb"><div class="pf" style="width:${Math.min(100,s.target?s.current/s.target*100:0)}%"></div></div></div>`).join(''):emp;
+
+  setTimeout(renderTrendChart,50);
+}
 
   const hutangManual=d.debts.filter(x=>x.type==='hutang'&&x.status!=='lunas').reduce((s,x)=>s+x.amount,0);
   const sisaCicilan=(d.cicilans||[]).reduce((s,c)=>{
@@ -1471,34 +1628,6 @@ function renderDash(){
     }
   }
 
-  document.getElementById('hAmt').textContent=fmt(ti-te);
-  document.getElementById('hInc').textContent=fmt(ti);
-  document.getElementById('hExp').textContent=fmt(te);
-  document.getElementById('sGS').textContent=fmt(d.sal.s||0);
-  document.getElementById('sGI').textContent=fmt(d.sal.i||0);
-  document.getElementById('sBi').textContent=fmt(inc.filter(i=>i.category==='fnb').reduce((s,i)=>s+i.amount,0));
-  document.getElementById('sEx').textContent=fmt(inc.filter(i=>i.category==='extra').reduce((s,i)=>s+i.amount,0));
-
-  const emp=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg><p>Belum ada data</p></div>`;
-  document.getElementById('dIL').innerHTML=[...inc].reverse().slice(0,5).map(i=>txH(i,'inc')).join('')||emp;
-  document.getElementById('dEL').innerHTML=[...exp].reverse().slice(0,5).map(e=>txH(e,'exp')).join('')||emp;
-
-  // Budget
-  const budgets=d.budgets||{};const spent=getMonthExp();const bKeys=Object.keys(budgets).slice(0,4);
-  document.getElementById('dBudget').innerHTML=bKeys.length?bKeys.map(cat=>{
-    const s=spent[cat]||0,limit=budgets[cat],pct=Math.min(100,Math.round(s/limit*100));
-    const cls=pct>=100?'budget-over':pct>=80?'budget-warn':'budget-ok';
-    const pbCls=pct>=100?'pb-over':pct>=80?'pb-warn':'';
-    return `<div class="budget-row"><div class="budget-info"><div class="budget-name">${cat}</div><div class="budget-nums">${fmt(s)} / ${fmt(limit)}</div><div class="pb"><div class="pf ${pbCls}" style="width:${pct}%"></div></div></div><span class="budget-pct ${cls}">${pct}%</span></div>`;
-  }).join(''):`<div style="font-size:13px;color:var(--t3);padding:8px 0">Belum ada budget. Klik <strong>Set Budget</strong> di atas untuk mulai.</div>`;
-
-  // Tabungan
-  const sv=d.savings||[];
-  document.getElementById('dSV').innerHTML=sv.length?sv.map(s=>`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:13.5px;font-weight:600">${s.name}</span><span style="font-size:12px;color:var(--t3)">${fmt(s.current)} / ${fmt(s.target)}</span></div><div class="pb"><div class="pf" style="width:${Math.min(100,s.target?s.current/s.target*100:0)}%"></div></div></div>`).join(''):emp;
-
-  setTimeout(renderTrendChart,50);
-}
-
 // ── MULTI SELECT ──
 function toggleSel(type){
   selMode[type]=!selMode[type];selSet[type]=new Set();
@@ -1547,13 +1676,43 @@ function delInc(id){
 function renderInc(){
   const items=getD().income.filter(i=>inR(i.date)).reverse();
   const sel=selMode.inc;
-  const el=document.getElementById('iList');
+  const el=document.getElementById('iList');if(!el)return;
   if(!items.length){el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg><p>Tidak ada pemasukan</p></div>`;return;}
-  el.innerHTML=`<div class="txl ${sel?'select-mode':''}">` + items.map(i=>{
-    const checked=selSet.inc.has(i.id);
-    return `<div class="txi ${checked?'sel':''}" id="row-inc-${i.id}"><input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('inc',${i.id})"><div class="txic" style="background:#eaf5f0"><svg viewBox="0 0 24 24" stroke="#059669" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg></div><div class="txin"><div class="txnm">${i.category}${i.notes?' · '+i.notes:''}</div><div class="txdt">${fmtD(i.date)}</div></div><div class="txam inc">${fmt(i.amount)}</div>${sel?'':`<button class="btn bxs bghost" onclick="openEditInc(${i.id})" style="margin-left:6px">✏️</button><button class="btn bxs bdng" onclick="delInc(${i.id})" style="margin-left:4px">✕</button>`}</div>`;
-  }).join('') + '</div>';
+  const groups={};
+  items.forEach(i=>{const key=i.date?i.date.slice(0,7):'x';if(!groups[key])groups[key]=[];groups[key].push(i);});
+  const catLabel={'salary-suami':'Gaji Suami','salary-istri':'Gaji Istri','fnb':'Bisnis FnB','extra':'Penghasilan Tambahan','pinjaman':'Uang Pinjaman'};
+  const catIcon={'salary-suami':'💼','salary-istri':'👩‍💼','fnb':'🍽️','extra':'⭐','pinjaman':'🏦'};
+  let html=`<div class="${sel?'select-mode':''}">`;
+  Object.entries(groups).forEach(([month,its])=>{
+    const [y,m]=month.split('-');
+    const label=m&&y?MONTHS_ID[parseInt(m)-1]+' '+y:'Lainnya';
+    const total=its.reduce((s,i)=>s+i.amount,0);
+    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:14px 0 8px;display:flex;justify-content:space-between"><span>${label}</span><span style="color:#059669">${fmt(total)}</span></div>`;
+    html+=`<div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:12px">`;
+    its.forEach((i,idx)=>{
+      const checked=selSet.inc.has(i.id);
+      const cl=catLabel[i.category]||i.category;
+      const ic=catIcon[i.category]||'💰';
+      html+=`<div class="txi ${checked?'sel':''}" id="row-inc-${i.id}" style="padding:14px 16px;border-bottom:${idx<its.length-1?'1px solid var(--borderl)':'none'};display:flex;align-items:center;gap:0">
+        ${sel?`<input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('inc',${i.id})" style="margin-right:10px">`:''}
+        <div style="width:40px;height:40px;border-radius:12px;background:#eaf5f0;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">${ic}</div>
+        <div style="flex:1;min-width:0;margin-left:12px">
+          <div style="font-size:14px;font-weight:700;letter-spacing:-.2px">${cl}</div>
+          ${i.notes?`<div style="font-size:12px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.notes}</div>`:''}
+          <div style="font-size:11.5px;color:var(--t3);margin-top:2px">${fmtD(i.date)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:12px">
+          <div style="font-size:15px;font-weight:800;color:#059669">+${fmt(i.amount)}</div>
+          ${sel?'':`<div style="display:flex;gap:4px;margin-top:6px;justify-content:flex-end"><button onclick="openEditInc(${i.id})" style="background:var(--sf2);border:1px solid var(--borderl);border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:var(--t2)">✏️</button><button onclick="delInc(${i.id})" style="background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:#dc2626">✕</button></div>`}
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
 }
+
 
 // ── EXPENSES ──
 function addExp(){
@@ -1577,13 +1736,39 @@ function delExp(id){
 function renderExp(){
   const items=getD().expenses.filter(e=>inR(e.date)).reverse();
   const sel=selMode.exp;
-  const el=document.getElementById('eList');
+  const el=document.getElementById('eList');if(!el)return;
   if(!items.length){el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg><p>Tidak ada pengeluaran</p></div>`;return;}
-  el.innerHTML=`<div class="txl ${sel?'select-mode':''}">` + items.map(e=>{
-    const checked=selSet.exp.has(e.id);
-    return `<div class="txi ${checked?'sel':''}" id="row-exp-${e.id}"><input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('exp',${e.id})"><div class="txic" style="background:#fef2f2"><svg viewBox="0 0 24 24" stroke="#dc2626" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg></div><div class="txin"><div class="txnm">${e.category}${e.notes?' · '+e.notes:''}</div><div class="txdt">${fmtD(e.date)}</div></div><div class="txam exp">${fmt(e.amount)}</div>${sel?'':'<button class="btn bxs bdng" onclick="delExp('+e.id+')" style="margin-left:8px">Hapus</button>'}</div>`;
-  }).join('') + '</div>';
+  const groups={};
+  items.forEach(e=>{const key=e.date?e.date.slice(0,7):'x';if(!groups[key])groups[key]=[];groups[key].push(e);});
+  let html=`<div class="${sel?'select-mode':''}">`;
+  Object.entries(groups).forEach(([month,its])=>{
+    const [y,m]=month.split('-');
+    const label=m&&y?MONTHS_ID[parseInt(m)-1]+' '+y:'Lainnya';
+    const total=its.reduce((s,e)=>s+e.amount,0);
+    html+=`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--t3);padding:14px 0 8px;display:flex;justify-content:space-between"><span>${label}</span><span style="color:#dc2626">${fmt(total)}</span></div>`;
+    html+=`<div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:12px">`;
+    its.forEach((e,idx)=>{
+      const checked=selSet.exp.has(e.id);
+      html+=`<div class="txi ${checked?'sel':''}" id="row-exp-${e.id}" style="padding:14px 16px;border-bottom:${idx<its.length-1?'1px solid var(--borderl)':'none'};display:flex;align-items:center;gap:0">
+        ${sel?`<input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('exp',${e.id})" style="margin-right:10px">`:''}
+        <div style="width:40px;height:40px;border-radius:12px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">💸</div>
+        <div style="flex:1;min-width:0;margin-left:12px">
+          <div style="font-size:14px;font-weight:700;letter-spacing:-.2px">${e.category}</div>
+          ${e.notes?`<div style="font-size:12px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.notes}</div>`:''}
+          <div style="font-size:11.5px;color:var(--t3);margin-top:2px">${fmtD(e.date)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:12px">
+          <div style="font-size:15px;font-weight:800;color:#dc2626">-${fmt(e.amount)}</div>
+          ${sel?'':`<div style="display:flex;gap:4px;margin-top:6px;justify-content:flex-end"><button onclick="delExp(${e.id})" style="background:#fef2f2;border:1px solid #fecaca;border-radius:7px;padding:3px 8px;font-size:11px;cursor:pointer;color:#dc2626">✕</button></div>`}
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
 }
+
 
 // ── DEBT ──
 function toggleDebtForm(){
@@ -1644,9 +1829,32 @@ function delDebt(id){
   d.debts=d.debts.filter(x=>x.id!==id);setD(d);renderDebt();renderDash();toast('Dihapus');
 }
 function dcH(x){
-  const col=x.type==='hutang'?'#ef4444':'#10b981';
-  return `<div class="dc" style="border-left:3px solid ${col}"><div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px"><div><div style="font-weight:600">${x.name}</div><div style="font-size:11px;color:var(--t3)">${fmtD(x.date)}</div></div><span class="bdg ${x.status==='lunas'?'bok':'bdn'}">${x.status}</span></div><div style="font-size:19px;font-weight:800;margin-bottom:9px">${fmt(x.amount)}</div><div style="display:flex;gap:7px"><button class="btn bsm bghost" onclick="toggleDebt(${x.id})">${x.status==='aktif'?'Tandai Lunas':'Aktifkan Lagi'}</button><button class="btn bsm bdng" onclick="delDebt(${x.id})">Hapus</button></div></div>`;
+  const isHutang=x.type==='hutang';
+  const statusCls=x.status==='lunas'?'bok':'bdn';
+  const statusLabel=x.status==='lunas'?'Lunas':'Aktif';
+  const accentColor=isHutang?'#ef4444':'#10b981';
+  const bgColor=isHutang?'#fef2f2':'#f0fdf4';
+  const icon=isHutang?'💳':'💰';
+  return `<div style="background:var(--surface);border-radius:16px;padding:18px;margin-bottom:12px;box-shadow:var(--sh);border:1px solid var(--borderl);border-left:4px solid ${accentColor}">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px">
+          <span style="font-size:18px">${icon}</span>
+          <div style="font-size:15px;font-weight:800;letter-spacing:-.3px">${x.name}</div>
+        </div>
+        <div style="font-size:12px;color:var(--t3)">${fmtD(x.date)}</div>
+      </div>
+      <span class="bdg ${statusCls}" style="flex-shrink:0;margin-left:10px">${statusLabel}</span>
+    </div>
+    <div style="font-size:26px;font-weight:900;letter-spacing:-1px;color:${accentColor};margin-bottom:14px">${fmt(x.amount)}</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn bsm bghost" style="flex:1;justify-content:center" onclick="toggleDebt(${x.id})">${x.status==='aktif'?'✓ Tandai Lunas':'↩ Aktifkan'}</button>
+      <button class="btn bsm bdng" style="justify-content:center;padding:6px 13px" onclick="delDebt(${x.id})">✕</button>
+    </div>
+  </div>`;
 }
+
+
 function renderDebt(){
   const d=getD(),h=d.debts.filter(x=>x.type==='hutang'),p=d.debts.filter(x=>x.type==='piutang');
   const emp=`<div class="emp"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg><p>Tidak ada data</p></div>`;
