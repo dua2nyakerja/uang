@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>FinKel v2.0.1</title>
+<title>FinKel v3.1.0</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230f1c11'/%3E%3Ccircle cx='50' cy='46' r='24' fill='none' stroke='%235ec48a' stroke-width='5'/%3E%3Cpath d='M50 32v14l8 8' stroke='%235ec48a' stroke-width='5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3Cpath d='M26 76h48' stroke='%233fa06a' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -244,8 +244,8 @@ body.dk .budget-over{background:rgba(239,68,68,.2);color:#fca5a5}
 .qfab-item{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--surface);border-radius:32px;box-shadow:var(--sh2);border:1px solid var(--borderl);cursor:pointer;font-size:13.5px;font-weight:600;color:var(--text);transition:all .2s;animation:fabIn .2s ease}
 .qfab-item:hover{border-color:var(--accent);background:var(--alight);color:var(--accent)}
 @keyframes fabIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:flex-end;justify-content:center}
-.modal-bg.on{display:flex}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:600;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.on{display:flex!important}
 .modal{background:var(--surface);border-radius:var(--rx) var(--rx) 0 0;padding:24px 24px 36px;width:100%;max-width:500px;animation:modalUp .3s cubic-bezier(.4,0,.2,1)}
 @keyframes modalUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
@@ -404,7 +404,7 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
   <aside class="sb" id="sb">
     <div class="sblogo">
       <div class="sblt">Fin<span>Kel</span></div>
-      <div class="sblv">v2.0.1 &#183; Keuangan Keluarga</div>
+      <div class="sblv">v3.1.0 &#183; Keuangan Keluarga</div>
     </div>
     <nav class="nav">
       <div class="ns">
@@ -492,13 +492,27 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
           </div>
         </div>
         <div class="card mb6">
-          <div class="sh"><div class="st">Tren Keuangan</div><div style="display:flex;gap:4px"><button class="btn bxs bghost trend-btn" data-p="1" onclick="setTrendPeriod(1)" style="font-size:11px;padding:4px 8px">Bln</button><button class="btn bxs bghost trend-btn" data-p="3" onclick="setTrendPeriod(3)" style="font-size:11px;padding:4px 8px">3 Bln</button><button class="btn bxs bghost trend-btn active" data-p="6" onclick="setTrendPeriod(6)" style="font-size:11px;padding:4px 8px;background:var(--accent);color:#fff;border-color:var(--accent)">6 Bln</button><button class="btn bxs bghost trend-btn" data-p="12" onclick="setTrendPeriod(12)" style="font-size:11px;padding:4px 8px">Thn</button></div></div>
+          <div class="sh"><div class="st">Tren Keuangan</div><div style="display:flex;gap:4px"><button class="btn bxs bghost trend-btn" data-p="1" onclick="setTrendPeriod(1)" style="font-size:11px;padding:4px 8px;background:var(--accent);color:#fff;border-color:var(--accent)">Bln</button><button class="btn bxs bghost trend-btn" data-p="3" onclick="setTrendPeriod(3)" style="font-size:11px;padding:4px 8px">3 Bln</button><button class="btn bxs bghost trend-btn active" data-p="6" onclick="setTrendPeriod(6)" style="font-size:11px;padding:4px 8px">6 Bln</button><button class="btn bxs bghost trend-btn" data-p="12" onclick="setTrendPeriod(12)" style="font-size:11px;padding:4px 8px">Thn</button></div></div>
           <div class="chart-wrap"><svg class="chart-svg" id="trendChart" height="140"></svg></div>
           <div style="display:flex;gap:16px;margin-top:10px;font-size:12px;font-weight:600">
             <span style="color:#059669">&#9679; Pemasukan</span>
             <span style="color:#dc2626">&#9679; Pengeluaran</span>
           </div>
         </div>
+        <!-- Spending per Kategori -->
+        <div class="card mb6" id="spendingCard">
+          <div class="sh">
+            <div class="st">Pengeluaran Terbesar</div>
+            <div style="display:flex;gap:4px">
+              <button class="btn bxs bghost spend-btn" data-sp="week" onclick="setSpendPeriod('week')" style="font-size:11px;padding:4px 8px">Minggu</button>
+              <button class="btn bxs bghost spend-btn active" data-sp="month" onclick="setSpendPeriod('month')" style="font-size:11px;padding:4px 8px;background:var(--accent);color:#fff;border-color:var(--accent)">Bulan</button>
+              <button class="btn bxs bghost spend-btn" data-sp="6month" onclick="setSpendPeriod('6month')" style="font-size:11px;padding:4px 8px">6 Bln</button>
+              <button class="btn bxs bghost spend-btn" data-sp="year" onclick="setSpendPeriod('year')" style="font-size:11px;padding:4px 8px">Tahun</button>
+            </div>
+          </div>
+          <div id="spendingContent"></div>
+        </div>
+
         <div class="g4 mb6">
           <div class="sc"><div class="sci" style="background:#eaf5f0"><svg viewBox="0 0 24 24" stroke="#2a7d4f"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="scl">Gaji Suami</div><div class="scv" id="sGS">Rp 0</div></div>
           <div class="sc"><div class="sci" style="background:#fce7f3"><svg viewBox="0 0 24 24" stroke="#db2777"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/></svg></div><div class="scl">Gaji Istri</div><div class="scv" id="sGI">Rp 0</div></div>
@@ -1353,6 +1367,115 @@ function renderTrendChart(){
 }
 
 
+// ── SPENDING PER KATEGORI ──
+let spendPeriod='month';
+function setSpendPeriod(p){
+  spendPeriod=p;
+  document.querySelectorAll('.spend-btn').forEach(b=>{
+    const active=b.dataset.sp===p;
+    b.style.background=active?'var(--accent)':'';
+    b.style.color=active?'#fff':'';
+    b.style.borderColor=active?'var(--accent)':'';
+  });
+  renderSpending();
+}
+function getSpendDateRange(){
+  const now=new Date();
+  if(spendPeriod==='week'){
+    const start=new Date(now);start.setDate(now.getDate()-6);start.setHours(0,0,0,0);
+    return{start,end:now};
+  }
+  if(spendPeriod==='month'){
+    const start=new Date(now.getFullYear(),now.getMonth(),1);
+    return{start,end:now};
+  }
+  if(spendPeriod==='6month'){
+    const start=new Date(now.getFullYear(),now.getMonth()-5,1);
+    return{start,end:now};
+  }
+  // year
+  const start=new Date(now.getFullYear(),0,1);
+  return{start,end:now};
+}
+function renderSpending(){
+  const el=document.getElementById('spendingContent');if(!el)return;
+  const d=getD();
+  const{start,end}=getSpendDateRange();
+  // Filter expenses dalam range
+  const filtered=d.expenses.filter(e=>{
+    if(!e.date)return false;
+    const dt=new Date(e.date+'T00:00:00');
+    return dt>=start&&dt<=end;
+  });
+  if(!filtered.length){
+    el.innerHTML=`<div class="emp" style="padding:20px 0"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg><p>Belum ada data pengeluaran</p></div>`;
+    return;
+  }
+  // Hitung per kategori
+  const cats={};
+  filtered.forEach(e=>{cats[e.category]=(cats[e.category]||0)+e.amount;});
+  const total=filtered.reduce((s,e)=>s+e.amount,0);
+  const sorted=Object.entries(cats).sort((a,b)=>b[1]-a[1]);
+  const COLORS=['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#6366f1'];
+  const catIconMap={'Makanan & Minuman':'🍽️','Transportasi':'🚗','Listrik & Air':'💡','Internet & Telepon':'📱','Belanja Barang':'🛍️','Pendidikan':'📚','Kesehatan':'💊','Hiburan':'🎬','Transfer':'🏦','Lainnya':'💸'};
+  function getIcon(cat){for(const[k,v] of Object.entries(catIconMap)){if(cat&&cat.toLowerCase().includes(k.toLowerCase()))return v;}return '💸';}
+
+  // Build SVG donut chart
+  const R=60,r=38,cx=80,cy=80;
+  let startAngle=-Math.PI/2;
+  let slices='';
+  sorted.forEach(([cat,amt],i)=>{
+    const pct=amt/total;
+    const angle=pct*2*Math.PI;
+    const endAngle=startAngle+angle;
+    const x1=cx+R*Math.cos(startAngle),y1=cy+R*Math.sin(startAngle);
+    const x2=cx+R*Math.cos(endAngle),y2=cy+R*Math.sin(endAngle);
+    const ix1=cx+r*Math.cos(startAngle),iy1=cy+r*Math.sin(startAngle);
+    const ix2=cx+r*Math.cos(endAngle),iy2=cy+r*Math.sin(endAngle);
+    const large=angle>Math.PI?1:0;
+    const color=COLORS[i%COLORS.length];
+    if(pct>0.005){
+      slices+=`<path d="M${x1.toFixed(1)} ${y1.toFixed(1)} A${R} ${R} 0 ${large} 1 ${x2.toFixed(1)} ${y2.toFixed(1)} L${ix2.toFixed(1)} ${iy2.toFixed(1)} A${r} ${r} 0 ${large} 0 ${ix1.toFixed(1)} ${iy1.toFixed(1)} Z" fill="${color}" opacity="0.9"/>`;
+    }
+    startAngle=endAngle;
+  });
+
+  // Bar list
+  let bars='';
+  sorted.slice(0,7).forEach(([cat,amt],i)=>{
+    const pct=Math.round(amt/total*100);
+    const color=COLORS[i%COLORS.length];
+    const icon=getIcon(cat);
+    bars+=`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></div>
+      <span style="font-size:13px;flex-shrink:0">${icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px">
+          <span style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:120px">${cat}</span>
+          <span style="font-size:12px;font-weight:700;color:${color};margin-left:8px;flex-shrink:0">${pct}%</span>
+        </div>
+        <div style="height:4px;background:var(--borderl);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width .5s ease"></div>
+        </div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px">${fmt(amt)}</div>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML=`<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+    <!-- Donut chart -->
+    <div style="flex-shrink:0">
+      <svg width="160" height="160" viewBox="0 0 160 160">
+        ${slices}
+        <text x="80" y="76" text-anchor="middle" font-size="11" fill="var(--t3)" font-family="Outfit,sans-serif">Total</text>
+        <text x="80" y="92" text-anchor="middle" font-size="12" font-weight="700" fill="var(--text)" font-family="Outfit,sans-serif">${fmt(total).replace('Rp ','Rp ')}</text>
+      </svg>
+    </div>
+    <!-- Bar list -->
+    <div style="flex:1;min-width:160px">${bars}</div>
+  </div>`;
+}
+
 // ── VIEW ROUTING ──
 const VSUB={dashboard:'Ringkasan Keuangan',income:'Pemasukan',expenses:'Pengeluaran',debt:'Hutang & Piutang',cicilan:'Cicilan',savings:'Tabungan',budget:'Budget per Kategori',reminders:'Pengingat & Recurring',calendar:'Kalender',report:'Laporan',settings:'Pengaturan',telegram:'Telegram & Firebase'};
 function go(v){
@@ -1453,7 +1576,7 @@ function getStatus(){
 }
 
 // ── DASHBOARD ──
-let trendPeriod=6;
+let trendPeriod=1;
 function setTrendPeriod(p){
   trendPeriod=p;
   document.querySelectorAll('.trend-btn').forEach(b=>{
@@ -1573,6 +1696,7 @@ function renderDash(){
   if(dSVel)dSVel.innerHTML=sv.length?sv.map(s=>`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:13.5px;font-weight:600">${s.name}</span><span style="font-size:12px;color:var(--t3)">${fmt(s.current)} / ${fmt(s.target)}</span></div><div class="pb"><div class="pf" style="width:${Math.min(100,s.target?s.current/s.target*100:0)}%"></div></div></div>`).join(''):emp;
 
   setTimeout(renderTrendChart,50);
+  setTimeout(renderSpending,80);
 }
 
   const hutangManual=d.debts.filter(x=>x.type==='hutang'&&x.status!=='lunas').reduce((s,x)=>s+x.amount,0);
@@ -1771,14 +1895,12 @@ function renderExp(){
     el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg><p>Tidak ada pengeluaran</p></div>`;
     return;
   }
-  // Kelompokkan per bulan
   const groups={};
   items.forEach(e=>{
     const key=e.date?e.date.slice(0,7):'x';
     if(!groups[key])groups[key]=[];
     groups[key].push(e);
   });
-  // Icon per kategori
   const catIconMap={
     'Makanan & Minuman':'🍽️','Transportasi':'🚗','Listrik & Air':'💡',
     'Internet & Telepon':'📱','Belanja Barang':'🛍️','Pendidikan':'📚',
@@ -1793,38 +1915,39 @@ function renderExp(){
     const[y,m]=month.split('-');
     const label=m&&y?MONTHS_ID[parseInt(m)-1]+' '+y:'Lainnya';
     const total=its.reduce((s,e)=>s+e.amount,0);
-    // Section header
-    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 4px 8px">
+    // Section header — hanya label bulan, tanpa total duplikat
+    html+=`<div style="padding:16px 4px 8px">
       <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--t3)">${label}</span>
-      <span style="font-size:12px;font-weight:700;color:#dc2626">-${fmt(total)}</span>
     </div>`;
-    // Card grup
     html+=`<div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:6px">`;
     its.forEach((e,idx)=>{
       const checked=selSet.exp.has(e.id);
       const icon=getCatIcon(e.category);
       const isLast=idx===its.length-1;
+      // Format nominal: Rp 54.000 → ambil angkanya lalu prefix Rp
+      const nominalStr='Rp '+Math.round(e.amount).toLocaleString('id-ID').replace(/,/g,'.');
       html+=`<div class="txi${checked?' sel':''}" id="row-exp-${e.id}"
-        style="padding:12px 14px;border-bottom:${isLast?'none':'1px solid var(--borderl)'};display:flex;align-items:center;gap:12px;position:relative">
+        style="padding:12px 14px;border-bottom:${isLast?'none':'1px solid var(--borderl)'};display:flex;align-items:center;gap:10px">
         ${sel?`<input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('exp',${e.id})" style="flex-shrink:0">`:''}
         <!-- Icon -->
         <div style="width:38px;height:38px;border-radius:11px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${icon}</div>
-        <!-- Info -->
+        <!-- Nama + nominal di kiri -->
         <div style="flex:1;min-width:0">
           <div style="font-size:13.5px;font-weight:700;letter-spacing:-.15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.category}</div>
+          <div style="font-size:14px;font-weight:800;color:#dc2626;letter-spacing:-.2px;margin-top:1px">-${nominalStr}</div>
           ${e.notes?`<div style="font-size:11.5px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.notes}</div>`:''}
           <div style="font-size:11px;color:var(--t3);margin-top:2px">${fmtDs(e.date)}</div>
         </div>
-        <!-- Amount + action -->
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <div style="font-size:15px;font-weight:800;color:#dc2626;letter-spacing:-.3px">-${fmt(e.amount).replace('Rp ','')}</div>
-          ${sel?'':`<button type="button" onclick="delExp(${e.id})"
-            style="width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--t3);font-size:13px;transition:all .15s"
-            onmouseover="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'"
-            onmouseout="this.style.background='var(--sf2)';this.style.color='var(--t3)';this.style.borderColor='var(--borderl)'">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          </button>`}
-        </div>
+        <!-- Tombol hapus di kanan -->
+        ${sel?'':`<button type="button" onclick="delExp(${e.id})"
+          style="width:32px;height:32px;border-radius:9px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--t3);transition:all .15s"
+          onmouseover="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'"
+          onmouseout="this.style.background='var(--sf2)';this.style.color='var(--t3)';this.style.borderColor='var(--borderl)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            <path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+          </svg>
+        </button>`}
       </div>`;
     });
     html+='</div>';
@@ -2318,13 +2441,13 @@ function genRep(){
   const cats={};exp.forEach(e=>{cats[e.category]=(cats[e.category]||0)+e.amount;});
   const nm=c.displayName||(c.namaSuami&&c.namaIstri?c.namaSuami+' & '+c.namaIstri:'FinKel');
   const rng=drS?drS.toLocaleDateString('id-ID')+' — '+drE.toLocaleDateString('id-ID'):'Semua periode';
-  lastRep='LAPORAN KEUANGAN FINKEL v2.0.1\n'+nm+'\nPeriode: '+rng+'\n'+'─'.repeat(40)+'\n\n'
+  lastRep='LAPORAN KEUANGAN FINKEL v3.1.0\n'+nm+'\nPeriode: '+rng+'\n'+'─'.repeat(40)+'\n\n'
     +'RINGKASAN\nPemasukan  : '+fmt(ti)+'\nPengeluaran: '+fmt(te)+'\nSaldo      : '+fmt(ti-te)+'\n\n'
     +'PENGELUARAN PER KATEGORI\n'+Object.entries(cats).map(([k,v])=>k.padEnd(20)+': '+fmt(v)).join('\n')+'\n\n'
     +'BUDGET BULAN INI\n'+Object.entries(d.budgets||{}).map(([k,v])=>k.padEnd(20)+': '+fmt(getMonthExp()[k]||0)+' / '+fmt(v)).join('\n')+'\n\n'
     +'TABUNGAN\n'+(d.savings||[]).map(s=>s.name.padEnd(18)+': '+fmt(s.current)+' / '+fmt(s.target)+' ('+Math.round(s.target?s.current/s.target*100:0)+'%)').join('\n')+'\n\n'
     +'CICILAN AKTIF\n'+(d.cicilans||[]).map(c=>{const sisa=c.pays.filter(p=>!p.paid).length;return c.name.padEnd(18)+': '+sisa+' bulan sisa, '+fmt(c.pays.filter(p=>!p.paid).reduce((s,p)=>s+p.total,0));}).join('\n')+'\n\n'
-    +'─'.repeat(40)+'\nFinKel v2.0.1 · '+new Date().toLocaleString('id-ID');
+    +'─'.repeat(40)+'\nFinKel v3.1.0 · '+new Date().toLocaleString('id-ID');
   const el=document.getElementById('repOut');
   if(el){el.textContent=lastRep;el.style.display='block';}
   toast('✅ Laporan dibuat');
