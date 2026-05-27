@@ -1495,19 +1495,25 @@ function renderRekonList(){
 // ── TODAY EXPENSES ──
 function renderTodayCard(){
   const d=getD();
-  const todayStr=td();
-  const todayExp=d.expenses.filter(e=>e.date===todayStr);
-  const todayInc=d.income.filter(i=>i.date===todayStr);
+  // Ambil tanggal hari ini format YYYY-MM-DD
+  const now=new Date();
+  const todayStr=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  // Filter KETAT: hanya tanggal = hari ini
+  const todayExp=d.expenses.filter(e=>e.date&&e.date.slice(0,10)===todayStr);
+  const todayInc=d.income.filter(i=>i.date&&i.date.slice(0,10)===todayStr);
   const totalExp=todayExp.reduce((s,e)=>s+e.amount,0);
   const totalInc=todayInc.reduce((s,i)=>s+i.amount,0);
-  const now=new Date();
   const dateLabel=now.toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long'});
   const el=document.getElementById('todayDate');if(el)el.textContent=dateLabel;
   const dT=document.getElementById('dToday');if(dT)dT.textContent=fmt(totalExp);
   const dTI=document.getElementById('dTodayIncAmt');if(dTI)dTI.textContent=fmt(totalInc);
   const listEl=document.getElementById('dTodayList');
   if(!listEl)return;
-  const all=[...todayExp.map(e=>({...e,_t:'exp'})),...todayInc.map(i=>({...i,_t:'inc'}))].sort((a,b)=>Number(b.id)-Number(a.id));
+  // Gabung, sort terbaru dulu, ambil MAKS 5
+  const all=[
+    ...todayExp.map(e=>({...e,_t:'exp'})),
+    ...todayInc.map(i=>({...i,_t:'inc'}))
+  ].sort((a,b)=>Number(b.id)-Number(a.id)).slice(0,5);
   if(!all.length){
     listEl.innerHTML='<div style="font-size:12px;color:var(--t3);margin-top:8px;padding-top:8px;border-top:1px solid var(--borderl)">Belum ada transaksi hari ini</div>';
     return;
@@ -1518,7 +1524,13 @@ function renderTodayCard(){
     const color=x._t==='exp'?'#dc2626':'#059669';
     const sign=x._t==='exp'?'-':'+';
     const nominal=fmt(x.amount).replace('Rp ','');
-    return '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--borderl)"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+label+'</div>'+(sub?'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+sub+'</div>':'')+'</div><div style="font-size:13px;font-weight:800;color:'+color+';flex-shrink:0">'+sign+nominal+'</div></div>';
+    return '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:1px solid var(--borderl)">'
+      +'<div style="flex:1;min-width:0">'
+        +'<div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+label+'</div>'
+        +(sub?'<div style="font-size:11px;color:var(--t3);margin-top:1px">'+sub+'</div>':'')
+      +'</div>'
+      +'<div style="font-size:13px;font-weight:800;color:'+color+';flex-shrink:0">'+sign+nominal+'</div>'
+    +'</div>';
   }).join('');
 }
 
