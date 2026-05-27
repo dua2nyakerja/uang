@@ -928,7 +928,7 @@ body.dk #dpGlobal{box-shadow:0 16px 48px rgba(0,0,0,.5),0 0 0 1px var(--border)}
 </div>
 
 <!-- EDIT INCOME MODAL -->
-<div class="modal-bg" id="editIncModal" onclick="closeEditInc(event)">
+<div class="modal-bg" id="editIncModal" onclick="if(event.target===this)closeEditIncForce()">
   <div class="modal">
     <div class="modal-hdr">
       <div class="modal-title">Edit Pemasukan</div>
@@ -2003,8 +2003,9 @@ function delExp(id){
 }
 let editExpId=null;
 function openEditExp(id){
-  const d=getD();const item=d.expenses.find(x=>x.id===id);if(!item)return;
-  editExpId=id;
+  const numId=parseInt(id)||id;
+  const d=getD();const item=d.expenses.find(x=>x.id==numId);if(!item)return;
+  editExpId=numId;
   // Populate kategori options
   const cats=getAllCats();
   const sel=document.getElementById('editExpCat');
@@ -2027,7 +2028,7 @@ function saveEditExp(){
   const note=document.getElementById('editExpNote').value;
   const date=DP.get('editExpD');
   if(!cat||!amt||!date){toast('Isi semua field wajib');return;}
-  const d=getD();const idx=d.expenses.findIndex(x=>x.id===editExpId);
+  const d=getD();const idx=d.expenses.findIndex(x=>x.id==editExpId);
   if(idx<0){toast('Data tidak ditemukan');return;}
   d.expenses[idx]={...d.expenses[idx],category:cat,amount:amt,date,notes:note};
   setD(d);pushToFB('expenses',d.expenses[idx]);
@@ -2641,8 +2642,9 @@ function renderLog(){
 // ── EDIT INCOME ──
 let editIncId=null;
 function openEditInc(id){
-  const d=getD();const item=d.income.find(x=>x.id===id);if(!item)return;
-  editIncId=id;
+  const numId=parseInt(id)||id;
+  const d=getD();const item=d.income.find(x=>x.id==numId);if(!item)return;
+  editIncId=numId;
   document.getElementById('editIncCat').value=item.category||'';
   document.getElementById('editIncAmt').value=item.amount?item.amount.toLocaleString('id-ID').replace(/,/g,'.'):'';
   document.getElementById('editIncNote').value=item.notes||'';
@@ -2658,7 +2660,7 @@ function saveEditInc(){
   const note=document.getElementById('editIncNote').value;
   const date=DP.get('editIncD');
   if(!cat||!amt||!date){toast('Isi semua field wajib');return;}
-  const d=getD();const idx=d.income.findIndex(x=>x.id===editIncId);
+  const d=getD();const idx=d.income.findIndex(x=>x.id==editIncId);
   if(idx<0){toast('Data tidak ditemukan');return;}
   d.income[idx]={...d.income[idx],category:cat,amount:amt,date,notes:note};
   setD(d);pushToFB('income',d.income[idx]);
