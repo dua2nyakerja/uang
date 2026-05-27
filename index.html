@@ -122,7 +122,7 @@ body.dk .dsc-dng{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);
 .sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .st{font-size:15px;font-weight:700}
 .txl{display:flex;flex-direction:column}
-.txi{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--borderl);position:relative;overflow:hidden}
+.txi{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--borderl);position:relative}
 .txi:last-child{border-bottom:none}
 .txic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .txic svg{width:16px;height:16px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -1923,62 +1923,78 @@ function renderInc(){
   const sel=selMode.inc;
   const el=document.getElementById('iList');if(!el)return;
   if(!items.length){
-    el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg><p>Tidak ada pemasukan</p></div>`;
+    el.innerHTML='<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 19V5"/><path d="M5 12l7-7 7 7"/></svg><p>Tidak ada pemasukan</p></div>';
     return;
   }
   const groups={};
-  items.forEach(i=>{
-    const key=i.date?i.date.slice(0,7):'x';
-    if(!groups[key])groups[key]=[];
-    groups[key].push(i);
-  });
+  items.forEach(i=>{const k=i.date?i.date.slice(0,7):'x';if(!groups[k])groups[k]=[];groups[k].push(i);});
   const catLabel={'salary-suami':'Gaji Suami','salary-istri':'Gaji Istri','fnb':'Bisnis FnB','extra':'Penghasilan Tambahan','pinjaman':'Uang Pinjaman'};
   const catIcon={'salary-suami':'💼','salary-istri':'👩‍💼','fnb':'🍽️','extra':'⭐','pinjaman':'🏦'};
-  let html=`<div class="${sel?'select-mode':''}">`;
+  const wrap=document.createElement('div');
+  if(sel)wrap.className='select-mode';
   Object.entries(groups).forEach(([month,its])=>{
     const[y,m]=month.split('-');
     const label=m&&y?MONTHS_ID[parseInt(m)-1]+' '+y:'Lainnya';
     const total=its.reduce((s,i)=>s+i.amount,0);
-    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 4px 8px">
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--t3)">${label}</span>
-      <span style="font-size:12px;font-weight:700;color:#059669">+${fmt(total)}</span>
-    </div>`;
-    html+=`<div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:6px">`;
-    its.forEach((i,idx)=>{
-      const checked=selSet.inc.has(i.id);
-      const cl=catLabel[i.category]||i.category;
-      const ic=catIcon[i.category]||'💰';
-      const isLast=idx===its.length-1;
-      html+=`<div class="txi${checked?' sel':''}" id="row-inc-'+i.id+'"
-        style="padding:12px 14px;border-bottom:${isLast?'none':'1px solid var(--borderl)'};display:flex;align-items:center;gap:12px">
-        ${sel?`<input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('inc','+i.id+')" style="flex-shrink:0">`:''}
-        <div style="width:38px;height:38px;border-radius:11px;background:#eaf5f0;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${ic}</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13.5px;font-weight:700;letter-spacing:-.15px">${cl}</div>
-          ${i.notes?`<div style="font-size:11.5px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${i.notes}</div>`:''}
-          <div style="font-size:11px;color:var(--t3);margin-top:2px">${fmtDs(i.date)}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <div style="font-size:15px;font-weight:800;color:#059669;letter-spacing:-.3px">+${fmt(i.amount).replace('Rp ','')}</div>
-          ${sel?'':`<div style="display:flex;gap:4px">
-            <button type="button" onclick="openEditInc('+i.id+')"
-              style="width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--t3);font-size:12px">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-            <button type="button" onclick="delInc('+i.id+')"
-              style="width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--t3);font-size:13px"
-              onmouseover="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'"
-              onmouseout="this.style.background='var(--sf2)';this.style.color='var(--t3)';this.style.borderColor='var(--borderl)'">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            </button>
-          </div>`}
-        </div>
-      </div>`;
+    // Header
+    const hdr=document.createElement('div');
+    hdr.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:16px 4px 8px';
+    hdr.innerHTML='<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--t3)">'+label+'</span><span style="font-size:12px;font-weight:700;color:#059669">+'+fmt(total)+'</span>';
+    wrap.appendChild(hdr);
+    // Card grup
+    const card=document.createElement('div');
+    card.style.cssText='background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:6px';
+    its.forEach((item,idx)=>{
+      const row=document.createElement('div');
+      row.id='row-inc-'+item.id;
+      row.style.cssText='padding:12px 14px;border-bottom:'+(idx<its.length-1?'1px solid var(--borderl)':'none')+';display:flex;align-items:center;gap:12px';
+      if(sel&&selSet.inc.has(item.id))row.style.background='var(--alight)';
+      const cl=catLabel[item.category]||item.category;
+      const ic=catIcon[item.category]||'💰';
+      // Checkbox
+      if(sel){
+        const cb=document.createElement('input');
+        cb.type='checkbox';cb.checked=selSet.inc.has(item.id);cb.style.flexShrink='0';
+        cb.onchange=()=>chkSel('inc',item.id);
+        row.appendChild(cb);
+      }
+      // Icon
+      const ico=document.createElement('div');
+      ico.style.cssText='width:38px;height:38px;border-radius:11px;background:#eaf5f0;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0';
+      ico.textContent=ic;row.appendChild(ico);
+      // Text
+      const txt=document.createElement('div');
+      txt.style.cssText='flex:1;min-width:0';
+      txt.innerHTML='<div style="font-size:13.5px;font-weight:700;letter-spacing:-.15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+cl+'</div>'+(item.notes?'<div style="font-size:11.5px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+item.notes+'</div>':'')+'<div style="font-size:11px;color:var(--t3);margin-top:2px">'+fmtDs(item.date)+'</div>';
+      row.appendChild(txt);
+      // Amount + buttons
+      const right=document.createElement('div');
+      right.style.cssText='display:flex;align-items:center;gap:8px;flex-shrink:0';
+      const amt=document.createElement('div');
+      amt.style.cssText='font-size:15px;font-weight:800;color:#059669;letter-spacing:-.3px';
+      amt.textContent='+'+fmt(item.amount).replace('Rp ','');
+      right.appendChild(amt);
+      if(!sel){
+        const btnEdit=document.createElement('button');
+        btnEdit.type='button';
+        btnEdit.style.cssText='width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);flex-shrink:0';
+        btnEdit.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+        btnEdit.onclick=(e)=>{e.stopPropagation();openEditInc(item.id);};
+        const btnDel=document.createElement('button');
+        btnDel.type='button';
+        btnDel.style.cssText='width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);flex-shrink:0';
+        btnDel.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+        btnDel.onclick=(e)=>{e.stopPropagation();delInc(item.id);};
+        btnDel.onmouseover=()=>{btnDel.style.background='#fef2f2';btnDel.style.color='#dc2626';btnDel.style.borderColor='#fecaca';};
+        btnDel.onmouseout=()=>{btnDel.style.background='var(--sf2)';btnDel.style.color='var(--t3)';btnDel.style.borderColor='var(--borderl)';};
+        right.appendChild(btnEdit);right.appendChild(btnDel);
+      }
+      row.appendChild(right);
+      card.appendChild(row);
     });
-    html+='</div>';
+    wrap.appendChild(card);
   });
-  html+='</div>';
-  el.innerHTML=html;
+  el.innerHTML='';el.appendChild(wrap);
 }
 
 
@@ -2041,79 +2057,74 @@ function renderExp(){
   const sel=selMode.exp;
   const el=document.getElementById('eList');if(!el)return;
   if(!items.length){
-    el.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg><p>Tidak ada pengeluaran</p></div>`;
+    el.innerHTML='<div class="emp"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg><p>Tidak ada pengeluaran</p></div>';
     return;
   }
   const groups={};
-  items.forEach(e=>{
-    const key=e.date?e.date.slice(0,7):'x';
-    if(!groups[key])groups[key]=[];
-    groups[key].push(e);
-  });
-  const catIconMap={
-    'Makanan & Minuman':'🍽️','Transportasi':'🚗','Listrik & Air':'💡',
-    'Internet & Telepon':'📱','Belanja Barang':'🛍️','Pendidikan':'📚',
-    'Kesehatan':'💊','Hiburan':'🎬','Transfer':'🏦','Lainnya':'💸',
-    'Tidak Terlacak':'🔍'
-  };
-  function getCatIcon(cat){
-    for(const[k,v] of Object.entries(catIconMap)){
-      if(cat&&cat.toLowerCase().includes(k.toLowerCase()))return v;
-    }
-    return '💸';
-  }
-  let html=`<div class="${sel?'select-mode':''}">`;
+  items.forEach(e=>{const k=e.date?e.date.slice(0,7):'x';if(!groups[k])groups[k]=[];groups[k].push(e);});
+  const catIconMap={'Makanan & Minuman':'🍽️','Transportasi':'🚗','Listrik & Air':'💡','Internet & Telepon':'📱','Belanja Barang':'🛍️','Pendidikan':'📚','Kesehatan':'💊','Hiburan':'🎬','Transfer':'🏦','Tidak Terlacak':'🔍'};
+  function getCatIcon(cat){for(const[k,v] of Object.entries(catIconMap)){if(cat&&cat.toLowerCase().includes(k.toLowerCase()))return v;}return '💸';}
+  const wrap=document.createElement('div');
+  if(sel)wrap.className='select-mode';
   Object.entries(groups).forEach(([month,its])=>{
     const[y,m]=month.split('-');
     const label=m&&y?MONTHS_ID[parseInt(m)-1]+' '+y:'Lainnya';
     const total=its.reduce((s,e)=>s+e.amount,0);
-    // Section header — persis sama dengan pemasukan
-    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 4px 8px">
-      <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--t3)">${label}</span>
-      <span style="font-size:12px;font-weight:700;color:#dc2626">-${fmt(total)}</span>
-    </div>`;
-    html+=`<div style="background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:6px">`;
-    its.forEach((e,idx)=>{
-      const checked=selSet.exp.has(e.id);
-      const icon=getCatIcon(e.category);
-      const isLast=idx===its.length-1;
-      // Nominal: persis sama format dengan pemasukan
-      const nomStr=fmt(e.amount).replace('Rp ','');
-      html+=`<div class="txi${checked?' sel':''}" id="row-exp-'+e.id+'"
-        style="padding:12px 14px;border-bottom:${isLast?'none':'1px solid var(--borderl)'};display:flex;align-items:center;gap:12px">
-        ${sel?`<input type="checkbox" class="tx-chk" ${checked?'checked':''} onchange="chkSel('exp','+e.id+')" style="flex-shrink:0">`:''}
-        <!-- Icon — persis sama -->
-        <div style="width:38px;height:38px;border-radius:11px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">${icon}</div>
-        <!-- Teks kiri — persis sama struktur dengan pemasukan -->
-        <div style="flex:1;min-width:0">
-          <div style="font-size:13.5px;font-weight:700;letter-spacing:-.15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.category}</div>
-          ${e.notes?`<div style="font-size:11.5px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.notes}</div>`:''}
-          <div style="font-size:11px;color:var(--t3);margin-top:2px">${fmtDs(e.date)}</div>
-        </div>
-        <!-- Kanan: nominal + tombol — persis sama dengan pemasukan -->
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
-          <div style="font-size:15px;font-weight:800;color:#dc2626;letter-spacing:-.3px">-${nomStr}</div>
-          ${sel?'':`<div style="display:flex;gap:4px">
-            <button type="button" onclick="openEditExp('+e.id+')"
-              style="width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--t3)"
-              onmouseover="this.style.background='var(--alight)';this.style.color='var(--accent)'"
-              onmouseout="this.style.background='var(--sf2)';this.style.color='var(--t3)'">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-            <button type="button" onclick="delExp('+e.id+')"
-              style="width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;color:var(--t3)"
-              onmouseover="this.style.background='#fef2f2';this.style.color='#dc2626';this.style.borderColor='#fecaca'"
-              onmouseout="this.style.background='var(--sf2)';this.style.color='var(--t3)';this.style.borderColor='var(--borderl)'">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            </button>
-          </div>`}
-        </div>
-      </div>`;
+    const hdr=document.createElement('div');
+    hdr.style.cssText='display:flex;justify-content:space-between;align-items:center;padding:16px 4px 8px';
+    hdr.innerHTML='<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--t3)">'+label+'</span><span style="font-size:12px;font-weight:700;color:#dc2626">-'+fmt(total)+'</span>';
+    wrap.appendChild(hdr);
+    const card=document.createElement('div');
+    card.style.cssText='background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:var(--sh);border:1px solid var(--borderl);margin-bottom:6px';
+    its.forEach((item,idx)=>{
+      const row=document.createElement('div');
+      row.id='row-exp-'+item.id;
+      row.style.cssText='padding:12px 14px;border-bottom:'+(idx<its.length-1?'1px solid var(--borderl)':'none')+';display:flex;align-items:center;gap:12px';
+      if(sel&&selSet.exp.has(item.id))row.style.background='var(--alight)';
+      const icon=getCatIcon(item.category);
+      if(sel){
+        const cb=document.createElement('input');
+        cb.type='checkbox';cb.checked=selSet.exp.has(item.id);cb.style.flexShrink='0';
+        cb.onchange=()=>chkSel('exp',item.id);
+        row.appendChild(cb);
+      }
+      // Icon
+      const ico=document.createElement('div');
+      ico.style.cssText='width:38px;height:38px;border-radius:11px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0';
+      ico.textContent=icon;row.appendChild(ico);
+      // Text
+      const txt=document.createElement('div');
+      txt.style.cssText='flex:1;min-width:0';
+      txt.innerHTML='<div style="font-size:13.5px;font-weight:700;letter-spacing:-.15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+item.category+'</div>'+(item.notes?'<div style="font-size:11.5px;color:var(--t3);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+item.notes+'</div>':'')+'<div style="font-size:11px;color:var(--t3);margin-top:2px">'+fmtDs(item.date)+'</div>';
+      row.appendChild(txt);
+      // Amount + buttons
+      const right=document.createElement('div');
+      right.style.cssText='display:flex;align-items:center;gap:8px;flex-shrink:0';
+      const amt=document.createElement('div');
+      amt.style.cssText='font-size:15px;font-weight:800;color:#dc2626;letter-spacing:-.3px';
+      amt.textContent='-'+fmt(item.amount).replace('Rp ','');
+      right.appendChild(amt);
+      if(!sel){
+        const btnEdit=document.createElement('button');
+        btnEdit.type='button';
+        btnEdit.style.cssText='width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);flex-shrink:0';
+        btnEdit.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+        btnEdit.onclick=(e)=>{e.stopPropagation();openEditExp(item.id);};
+        const btnDel=document.createElement('button');
+        btnDel.type='button';
+        btnDel.style.cssText='width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);flex-shrink:0';
+        btnDel.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+        btnDel.onclick=(e)=>{e.stopPropagation();delExp(item.id);};
+        btnDel.onmouseover=()=>{btnDel.style.background='#fef2f2';btnDel.style.color='#dc2626';btnDel.style.borderColor='#fecaca';};
+        btnDel.onmouseout=()=>{btnDel.style.background='var(--sf2)';btnDel.style.color='var(--t3)';btnDel.style.borderColor='var(--borderl)';};
+        right.appendChild(btnEdit);right.appendChild(btnDel);
+      }
+      row.appendChild(right);
+      card.appendChild(row);
     });
-    html+='</div>';
+    wrap.appendChild(card);
   });
-  html+='</div>';
-  el.innerHTML=html;
+  el.innerHTML='';el.appendChild(wrap);
 }
 
 
