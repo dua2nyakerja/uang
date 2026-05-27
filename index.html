@@ -1807,71 +1807,13 @@ function renderDash(){
   const dSVel=document.getElementById('dSV');
   if(dSVel)dSVel.innerHTML=sv.length?sv.map(s=>`<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:13.5px;font-weight:600">${s.name}</span><span style="font-size:12px;color:var(--t3)">${fmt(s.current)} / ${fmt(s.target)}</span></div><div class="pb"><div class="pf" style="width:${Math.min(100,s.target?s.current/s.target*100:0)}%"></div></div></div>`).join(''):emp;
 
+
+
   setTimeout(renderTrendChart,50);
   setTimeout(renderSpending,80);
   setTimeout(renderTodayCard,100);
   setTimeout(renderRekonList,120);
 }
-
-  const hutangManual=d.debts.filter(x=>x.type==='hutang'&&x.status!=='lunas').reduce((s,x)=>s+x.amount,0);
-  const sisaCicilan=(d.cicilans||[]).reduce((s,c)=>{
-    const sisa=c.pays.filter(p=>!p.paid).reduce((ss,p)=>ss+p.total,0);
-    return s+sisa;
-  },0);
-  const totalHutang=hutangManual+sisaCicilan;
-  const dHEl=document.getElementById('dH');
-  if(dHEl)dHEl.textContent=fmt(totalHutang);
-  const dHSub=document.getElementById('dHSub');
-  if(dHSub){
-    if(hutangManual>0&&sisaCicilan>0)
-      dHSub.textContent=`Manual ${fmt(hutangManual)} + Cicilan ${fmt(sisaCicilan)}`;
-    else if(sisaCicilan>0)
-      dHSub.textContent=`Sisa cicilan ${fmt(sisaCicilan)}`;
-    else if(hutangManual>0)
-      dHSub.textContent=`Hutang manual`;
-    else
-      dHSub.textContent='Tidak ada hutang';
-  }
-
-  // Cicilan bulan ini
-  const now=new Date();
-  const thisMonth=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  const cicBulanIni=[];
-  (d.cicilans||[]).forEach(c=>{
-    c.pays.forEach(p=>{
-      if(!p.paid && p.due && p.due.startsWith(thisMonth)){
-        cicBulanIni.push({name:c.name,due:p.due,total:p.total,paid:p.paid});
-      }
-    });
-  });
-  const cicTotal=cicBulanIni.reduce((s,x)=>s+x.total,0);
-  const cicCountEl=document.getElementById('dCicCount');
-  const cicTotalEl=document.getElementById('dCicTotal');
-  if(cicTotalEl)cicTotalEl.textContent=fmt(cicTotal);
-  if(cicCountEl)cicCountEl.textContent=cicBulanIni.length?`${cicBulanIni.length} tagihan`:'Tidak ada cicilan';
-
-  const cicListEl=document.getElementById('dCicList');
-  if(cicListEl){
-    if(!cicBulanIni.length){
-      cicListEl.innerHTML=`<div class="emp"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>Tidak ada cicilan jatuh tempo bulan ini</p></div>`;
-    } else {
-      cicListEl.innerHTML=cicBulanIni.map(x=>{
-        const diff=Math.ceil((new Date(x.due+'T00:00:00')-now)/(1000*60*60*24));
-        const urgCls=diff<=0?'bdn':diff<=5?'bwn':'bok';
-        const urgLbl=diff===0?'Hari ini!':diff<0?`${Math.abs(diff)}h lalu`:diff===1?'Besok':`${diff} hari lagi`;
-        return `<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--borderl)">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${x.name}</div>
-            <div style="font-size:11.5px;color:var(--t3);margin-top:2px">Jatuh tempo ${fmtDs(x.due)}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0">
-            <div style="font-size:15px;font-weight:800;color:var(--accent)">${fmt(x.total)}</div>
-            <span class="bdg ${urgCls}" style="font-size:10px;margin-top:2px;display:inline-block">${urgLbl}</span>
-          </div>
-        </div>`;
-      }).join('');
-    }
-  }
 
 // ── MULTI SELECT ──
 function toggleSel(type){
@@ -1979,7 +1921,7 @@ function renderInc(){
         btnEdit.type='button';
         btnEdit.style.cssText='width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);flex-shrink:0';
         btnEdit.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-        btnEdit.onclick=(e)=>{e.stopPropagation();openEditInc(item.id);};
+        btnEdit.onclick=(e)=>{e.stopPropagation();openEditInc(String(item.id));};
         const btnDel=document.createElement('button');
         btnDel.type='button';
         btnDel.style.cssText='width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);flex-shrink:0';
@@ -2017,11 +1959,13 @@ function delExp(id){
   addDeleted(id);deleteFromFirebase('expenses',id);
   renderExp();renderDash();toast('Dihapus');
 }
-let editExpId=null;
+var editExpId=null;
 function openEditExp(id){
-  const numId=parseInt(id)||id;
-  const d=getD();const item=d.expenses.find(x=>x.id==numId);if(!item)return;
-  editExpId=numId;
+  const sid=String(id);
+  const d=getD();
+  const item=d.expenses.find(x=>String(x.id)===sid);
+  if(!item){toast('Data tidak ditemukan (id:'+sid+')');return;}
+  editExpId=sid;
   // Populate kategori options
   const cats=getAllCats();
   const sel=document.getElementById('editExpCat');
@@ -2044,7 +1988,7 @@ function saveEditExp(){
   const note=document.getElementById('editExpNote').value;
   const date=DP.get('editExpD');
   if(!cat||!amt||!date){toast('Isi semua field wajib');return;}
-  const d=getD();const idx=d.expenses.findIndex(x=>x.id==editExpId);
+  const d=getD();const idx=d.expenses.findIndex(x=>String(x.id)===String(editExpId));
   if(idx<0){toast('Data tidak ditemukan');return;}
   d.expenses[idx]={...d.expenses[idx],category:cat,amount:amt,date,notes:note};
   setD(d);pushToFB('expenses',d.expenses[idx]);
@@ -2109,7 +2053,7 @@ function renderExp(){
         btnEdit.type='button';
         btnEdit.style.cssText='width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);flex-shrink:0';
         btnEdit.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
-        btnEdit.onclick=(e)=>{e.stopPropagation();openEditExp(item.id);};
+        btnEdit.onclick=(e)=>{e.stopPropagation();openEditExp(String(item.id));};
         const btnDel=document.createElement('button');
         btnDel.type='button';
         btnDel.style.cssText='width:28px;height:28px;border-radius:8px;background:var(--sf2);border:1px solid var(--borderl);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t3);flex-shrink:0';
@@ -2651,13 +2595,15 @@ function renderLog(){
 }
 
 // ── EDIT INCOME ──
-let editIncId=null;
+var editIncId=null;
 function openEditInc(id){
-  const numId=parseInt(id)||id;
-  const d=getD();const item=d.income.find(x=>x.id==numId);if(!item)return;
-  editIncId=numId;
+  const sid=String(id);
+  const d=getD();
+  const item=d.income.find(x=>String(x.id)===sid);
+  if(!item){toast('Data tidak ditemukan (id:'+sid+')');return;}
+  editIncId=sid;
   document.getElementById('editIncCat').value=item.category||'';
-  document.getElementById('editIncAmt').value=item.amount?item.amount.toLocaleString('id-ID').replace(/,/g,'.'):'';
+  document.getElementById('editIncAmt').value=item.amount?Math.round(item.amount).toLocaleString('id-ID').replace(/,/g,'.'):'';
   document.getElementById('editIncNote').value=item.notes||'';
   DP.set('editIncD',item.date||td());
   document.getElementById('editIncModal').classList.add('on');
@@ -2671,7 +2617,7 @@ function saveEditInc(){
   const note=document.getElementById('editIncNote').value;
   const date=DP.get('editIncD');
   if(!cat||!amt||!date){toast('Isi semua field wajib');return;}
-  const d=getD();const idx=d.income.findIndex(x=>x.id==editIncId);
+  const d=getD();const idx=d.income.findIndex(x=>String(x.id)===String(editIncId));
   if(idx<0){toast('Data tidak ditemukan');return;}
   d.income[idx]={...d.income[idx],category:cat,amount:amt,date,notes:note};
   setD(d);pushToFB('income',d.income[idx]);
